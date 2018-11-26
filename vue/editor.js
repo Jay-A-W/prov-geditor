@@ -12,7 +12,7 @@ Vue.component('editor', {
 
     data: function () {
         return {
-            a: 1
+            toolbar, 
         }
     },
 
@@ -34,28 +34,11 @@ Vue.component('editor', {
             }
         },
 
-        createToolbar() {
-            var tbContainer = document.createElement('div');
-            tbContainer.style.position = 'absolute';
-            tbContainer.style.overflow = 'hidden';
-            tbContainer.style.padding = '2px';
-            tbContainer.style.left = '0px';
-            tbContainer.style.top = '26px';
-            tbContainer.style.width = '24px';
-            tbContainer.style.bottom = '0px';
-
-            $(".editor").add(tbContainer);
-
-            // Creates new toolbar without event processing
-            var toolbar = new mxToolbar(tbContainer);
-            toolbar.enabled = false
-        },
-
-        addVertex(icon, w, h, style, graph, toolbar) {
+        addVertex(icon, w, h, style, graph) {
             var vertex = new mxCell(null, new mxGeometry(0, 0, w, h), style);
             vertex.setVertex(true);
 
-            this.addToolbarItem(graph, toolbar, vertex, icon);
+            this.addToolbarItem(graph, this.toolbar, vertex, icon);
         },
 
         createCanvas() {
@@ -93,7 +76,7 @@ Vue.component('editor', {
             this.addVertex('js/lib/images/triangle.gif', 40, 40, 'shape=triangle', graph);
             this.addVertex('js/lib/images/cylinder.gif', 40, 40, 'shape=cylinder', graph);
             this.addVertex('js/lib/images/actor.gif', 30, 40, 'shape=actor', graph);
-            toolbar.addLine();
+            this.toolbar.addLine();
         },
         
         addToolbarItem(graph, toolbar, prototype, image){
@@ -117,6 +100,7 @@ Vue.component('editor', {
 
     created: function () {
         mxConnectionHandler.prototype.connectImage = new mxImage('images/connector.gif', 16, 16);
+        this.createToolbar();
         this.createCanvas();
     },
 })
