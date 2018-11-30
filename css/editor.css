@@ -1,19 +1,19 @@
 .toolbar {
-    tbContainer .style.position = 'absolute';
-    tbContainer .style.overflow = 'hidden';
-    tbContainer .style.padding = '2px';
-    tbContainer .style.left = '0px';
-    tbContainer .style.top = '26px';
-    tbContainer .style.width = '24px';
-    tbContainer .style.bottom = '0px';
+    position: absolute;
+    overflow: hidden;
+    padding: 2px;
+    left: 0px;
+    top: 26px;
+    width: 24px;
+    bottom: 0px;
 }
 
 .canvas {
-    container .style.position = 'absolute';
-    container .style.overflow = 'hidden';
-    container .style.left = '24px';
-    container .style.top = '26px';
-    container .style.right = '0px';
-    container .style.bottom = '0px';
-    container .style.background = 'url("js/lib/images/grid.gif")';
+    position: absolute;
+    overflow: hidden;
+    left: 24px;
+    top: 26px;
+    right: 0px;
+    bottom: 0px;
+    background: url("js/lib/images/grid.gif");
 }

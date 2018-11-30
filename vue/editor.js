@@ -41,9 +41,28 @@ Vue.component('editor', {
             this.addToolbarItem(graph, this.toolbar, vertex, icon);
         },
 
+        createToolbar() {
+            var tbContainer = document.createElement('div');
+            tbContainer.className = "toolbar";
+            tbContainer.style.position = 'absolute';
+            tbContainer.style.overflow = 'hidden';
+            tbContainer.style.padding = '2px';
+            tbContainer.style.left = '0px';
+            tbContainer.style.top = '26px';
+            tbContainer.style.width = '24px';
+            tbContainer.style.bottom = '0px';
+
+            $(".editor").append(tbContainer);
+
+            // Creates new toolbar without event processing
+            this.toolbar = new mxToolbar(tbContainer);
+            toolbar.enabled = false;
+
+        },
+
         createCanvas() {
             let canvas = document.createElement('div');
-            $("editor").add(canvas);
+            $(".editor").append(canvas);
             canvas.style.position = 'absolute';
             canvas.style.overflow = 'hidden';
             canvas.style.left = '24px';
@@ -98,8 +117,9 @@ Vue.component('editor', {
         },
     },
 
-    created: function () {
-        mxConnectionHandler.prototype.connectImage = new mxImage('images/connector.gif', 16, 16);
+    mounted() {
+        mxConnectionHandler.prototype.connectImage = new mxImage('js/lib/images/connector.gif', 16, 16);
+        this.fixIE();
         this.createToolbar();
         this.createCanvas();
     },
