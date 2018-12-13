@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/jointjs/2.1.0/joint.css" />
+</head>
+<body>
+    <!-- content -->
+    <div id="myholder"></div>
+
+    <!-- dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/3.10.1/lodash.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/backbone.js/1.3.3/backbone.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jointjs/2.1.0/joint.js"></script>
+    <script src="lib/customShapes/joint.shapes.custom.js"></script>
+    <script type="text/javascript" src="lib/prov.js"></script>
+    <script type="text/javascript" src="lib/api.js"></script>
+    <script src="js/provFunc.js"></script>
+
+    <!-- code -->
+    <script type="text/javascript">
+
+        let json = {};
+        var graph = new joint.dia.Graph;
+
+        var paper = new joint.dia.Paper({
+            el: document.getElementById('myholder'),
+            model: graph,
+            width: 2000,
+            height: 2000,
+            gridSize: 1
+        });
+
+        function state(x, y, label) {
+
+            var cell = new joint.shapes.fsa.State({
+                position: { x: x, y: y },
+                size: { width: 60, height: 60 },
+                attrs: { text: { text: label } }
+            });
+            graph.addCell(cell);
+            return cell;
+        };
+
+        function link(source, target, label, vertices) {
+            //doc.used("ex:" + source.id, "ex:" + target.id);
+            //doc['used']("ex:" + source.id, "ex:" + target.id);
+            let labelFunc = doc[label];
+
+            console.log(typeof labelFunc !== 'function');
+
+            if (typeof labelFunc !== 'function') {
+                throw new Error('invalid label type '+label);
+            } else {
+                var cell = new joint.shapes.fsa.Arrow({
+                    source: { id: source.id },
+                    target: { id: target.id },
+                    labels: [{ position: .5, attrs: { text: { text: label || '', 'font-weight': 'bold' } } }],
+                    vertices: vertices || []
+                });
+                graph.addCell(cell);
+
+                doc[label]("ex:"+source.id, "ex:"+target.id);
+                return cell;
+            }
+        }
+
+        let doc = prov.document();
+        var def = doc.setDefaultNamespace("http://default.example.com/");
+        var ex = doc.addNamespace("ex", "http://www.example.org/");
+
+        function createItem(type,name,x,y) {
+            let item;
+            switch (type) {
+
+                case 'entity':
+                    item = new joint.shapes.custom.entity();
+                    let entity = doc.entity("ex:" + name);
+                    break;
+
+                case 'activity':
+                    item = new joint.shapes.custom.activity();
+                    let activity = doc.activity("ex:" + name);
+                    break;
+
+                case 'agent':
+                    item = new joint.shapes.custom.agent();
+                    let agent = doc.agent("ex:" + name);
+                    break;
+                default:
+                    throw new Error('Invalid item type');
+            }
+            item.resize(100, 40);
+
+            if ((x != null) && (y != null)) {
+                item.position(x, y);
+            }
+            item.addTo(graph);
+            return item;
+        }
+
+        let activity = createItem('activity','activity', 400, 500);
+        let entity = createItem('entity','entity', 400, 230);
+        let agent = createItem('agent','agent', 100, 330);
+
+        var used = link(activity, entity, 'used', [{ x: 400, y: 400 }]);
+        var wasGeneratedBy = link(entity, activity, 'wasGeneratedBy', [{ x: 500, y: 400 }]);
+        var wasDerivedFrom = link(entity, entity, 'wasDerivedFrom', [{ x: 400, y: 150 }, { x: 500, y: 150 }]);
+        var wasAttributedTo = link(entity, agent, 'wasAttributedTo');
+        var wasAssociatedWith = link(activity, agent, 'wasAssociatedWith');
+
+        //var rect2 = activity.clone();
+        //rect2.translate(300, 0);
+        //rect2.attr('label/text', 'world!');
+        //rect2.addto(graph);
+
+        //var link = new joint.shapes.standard.link();
+        //link.source(activity);
+        //link.target(rect2);
+        //link.addto(graph);
+
+        function example() {
+            //var e1 = prov.entity("ex:e1");
+            //e1.attr("ex:foo", ex.qn("bar"))
+            //    .attr("ex:baz", ["abc", "xsd:string"])
+            //    .attr("ex:bah", ["1", "xsd:integer"])
+            //    .attr("ex:bam", ["bam", undefined, "en"])
+            //    .attr(ex.qn("bam"), prov.literal("bam", undefined, "en"));
+            //console.log(e1);
+            //var d_e1 = prov.entity("d_e1");
+            //var e2 = prov.entity("ex:e2")
+            //    .attr("ex:dat", new Date(Date.now()))
+            //    .attr("ex:int", 1)
+            //    .attr("ex:nint", -1)
+            //    .attr("ex:flt", 1.02)
+            //    .attr("ex:str", "def")
+            //    .attr("ex:bool", true);
+            //console.log(e2);
+
+            //var der1 = prov.wasDerivedFrom("ex:e2", "ex:e1")
+            //    .attr("prov:type", ["prov:Revision", "xsd:QName"])
+            //    .id(ex.qn('d1'));
+            //var der1 = prov.wasDerivedFrom("ex:e2", "ex:e1");
+            //der1.attr(prov.ns.qn("type"), prov.ns.qn("Revision"));
+            //der1.id(ex.qn('d1'));
+            ////der1.activity = ex.qn('a1');
+            //der1.attr(prov.ns.qn("type"), prov.ns.qn("Revision"));
+            //console.log(der1);
+
+            //var der2 = prov.wasDerivedFrom("ex:e2", "ex:e1", ["prov:type", prov.ns.qn("Revision")]);
+            //console.log(der2);
+            //var bundle = prov.bundle("ex:bundle");
+            //bundle.entity("ex:e2").attr("prov:type", ["prov:Revision", "xsd:QName"]);
+            //var bundle2 = prov.bundle("ex:bundle2");
+            //console.log(bundle);
+            // var doc = prov.document().document();
+            // doc.entity("ex:foo");
+            // console.log(doc);
+            //prov.wasDerivedFrom("ex:e2", "ex:e1").generatedEntity("ex:e4");
+            //show_doc_json(prov.scope);
+        }
+
+    </script>
+    <a href="#" onclick="show_doc_json(doc.scope);">example</a>
+</body>
+</html>

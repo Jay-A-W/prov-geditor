@@ -1,7 +1,10 @@
 ﻿<!DOCTYPE html>
 
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<link rel="stylesheet" type="text/css" href="css/joint.css">
 <link rel="stylesheet" type="text/css" href="css/editor.css">
+<link type="text/css" rel="stylesheet" href="https://unpkg.com/bootstrap/dist/css/bootstrap.min.css" />
+<link type="text/css" rel="stylesheet" href="https://unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.css" />
 <head>
     <meta charset="utf-8" />
     <title></title>
@@ -12,14 +15,18 @@
 </head>
 <body>
     <div id="prov-editor">
-        <editor></editor>
+       
     </div>
-
     <!-- Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://unpkg.com/babel-polyfill@latest/dist/polyfill.min.js"></script>
+    <script src="https://unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="lib/lodash.js"></script>
+    <script src="lib/backbone.js"></script>
+    <script src="lib/joint.js"></script>
     <!-- Vue Declaration -->
-    <script src="vue/editor.js"></script>
     <script src="vue/index.js"></script>
+
 </body>
 </html>
