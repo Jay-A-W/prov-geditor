@@ -19,15 +19,11 @@ Vue.component('sidebar', {
        
     },
     methods: {
-        setActiveTool(className) {
-            activeTool = className;
-            console.log(className);
-        },
         addClickListener(className) {
             document.getElementById(className).addEventListener("click", function () {
                 //.activeTool = className;
                 store.commit("setActiveTool", className);
-                console.log(store.state.activeTool);
+                //console.log(store.state.activeTool);
             });
         }
     },

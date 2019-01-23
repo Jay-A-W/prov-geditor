@@ -40,8 +40,12 @@
             model: graph,
             width: 2000,
             height: 2000,
-            gridSize: 1
+            gridSize: 1,
+            linkPinning: false,
+            defaultLink: new joint.shapes.fsa.Arrow({
+            })
         });
+
 
         function state(x, y, label) {
             var cell = new joint.shapes.fsa.State({
@@ -120,14 +124,20 @@
         var wasAttributedTo = link(entity, agent, 'wasAttributedTo');
         var wasAssociatedWith = link(activity, agent, 'wasAssociatedWith');
 
-        //window.onload = function () {
-        //    document.getElementById("graph").addEventListener("click", function () {
-        //        console.log(event.clientX + "x" + event.clientY + "y");
-        //        let pointX = event.clientX-25;
-        //        let pointY = event.clientY-25;
-        //        let agent = createItem('entity', 'entity', pointX, pointY);
-        //    });
-        //}
+        window.onload = function () {
+            document.getElementById("graph").addEventListener("click", function () {
+                console.log(event.clientX + "x" + event.clientY + "y");
+                let activeTool = store.state.activeTool;
+                let pointX = event.clientX-25;
+                let pointY = event.clientY - 25;
+                if (activeTool != "none") {
+                    console.log(activeTool);
+                    createItem(activeTool, activeTool, pointX, pointY);
+                }
+                store.commit('setActiveTool', 'none');
+                event.stopPropagation();
+            });
+        }
 
         //var rect2 = activity.clone();
         //rect2.translate(300, 0);

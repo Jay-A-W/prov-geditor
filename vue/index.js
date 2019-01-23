@@ -6,7 +6,19 @@ const store = new Vuex.Store({
     },
     mutations: {
         setActiveTool(state, activeToolName) {
-            state.activeTool = activeToolName
+            switch (activeToolName) {
+                case "entityTool":
+                    state.activeTool = "entity";
+                    break;
+                case "activityTool":
+                    state.activeTool = "activity";
+                    break;
+                case "agentTool":
+                    state.activeTool = "agent";
+                    break;
+                default:
+                    state.activeTool = "none";
+            }
         }
     }
 })
