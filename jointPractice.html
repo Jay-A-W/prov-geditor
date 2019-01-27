@@ -42,9 +42,37 @@
             height: 2000,
             gridSize: 1,
             linkPinning: false,
-            defaultLink: new joint.shapes.fsa.Arrow({
-            })
+            defaultLink: new joint.shapes.deviceLink({
+            }),
+            elementView: joint.dia.ElementView.extend({
+                pointerdblclick: function (evt, x, y) {
+                    let input = prompt("Enter element name");
+                    let type = this.model.attributes.type.replace("custom.", "");
+                    // NEED TO REGISTER THE CHANGE TO AN ELEMENT IN THE PROV DOC
+                    // ALSO CURRENTLY LABEL TEXT IS NOT BEING USED WHEN CREATING ELEMENTS, A NEW TEXT IS CREATED IN THE SHAPE
+                    //editPROVElement(type, input);
+                    //console.log(this.model.attributes.attrs);
+                    //this.model.attributes.attrs.label.text = "efiji";
+                    //this.model.attr('text/text', input);
+                    //this.model.remove();
+                }
+            }),
+            linkView: joint.dia.LinkView.extend({
+                pointerdblclick: function (evt, x, y) {
+                    let input = prompt("Enter element name");
+                    this.model.attr('text/text', input);
+                    //this.model.remove();
+                }
+            }),
         });
+
+        function editPROVElement(type, name) {
+            let provElement = doc.scope.statements.filter(elementType => elementType.constructor.name == type).filter(element => element.identifier.localPart == name);
+            console.log(provElement);
+            let prevName = provElement[0].identifier.localPart;
+            provElement[0].identifier.localPart = name;
+            provElement[0].identifier.uri.replace(provElement[0].identifier.localPart, name);
+        };
 
 
         function state(x, y, label) {
@@ -89,17 +117,20 @@
             switch (type) {
 
                 case 'entity':
-                    item = new joint.shapes.custom.entity();
+                    item = new joint.shapes.custom.Entity();
+                    item.attr('text/text', name);
                     let entity = doc.entity("ex:" + name);
                     break;
 
                 case 'activity':
-                    item = new joint.shapes.custom.activity();
+                    item = new joint.shapes.custom.Activity();
+                    item.attr('text/text', name);
                     let activity = doc.activity("ex:" + name);
                     break;
 
                 case 'agent':
-                    item = new joint.shapes.custom.agent();
+                    item = new joint.shapes.custom.Agent();
+                    item.attr('text/text', name);
                     let agent = doc.agent("ex:" + name);
                     break;
                 default:
@@ -114,9 +145,11 @@
             return item;
         }
 
-        let activity = createItem('activity','activity', 400, 500);
-        let entity = createItem('entity','entity', 400, 230);
-        let agent = createItem('agent','agent', 100, 330);
+        let activity = createItem('activity','writing', 400, 500);
+        let entity = createItem('entity', 'story', 400, 230);
+        let entitdy = createItem('entity', 'dwdwwd', 400, 230);
+        let agent = createItem('agent', 'writer', 100, 330);
+
 
         var used = link(activity, entity, 'used', [{ x: 400, y: 400 }]);
         var wasGeneratedBy = link(entity, activity, 'wasGeneratedBy', [{ x: 500, y: 400 }]);
@@ -131,13 +164,20 @@
                 let pointX = event.clientX-25;
                 let pointY = event.clientY - 25;
                 if (activeTool != "none") {
-                    console.log(activeTool);
+                    //console.log(activeTool);
                     createItem(activeTool, activeTool, pointX, pointY);
                 }
                 store.commit('setActiveTool', 'none');
                 event.stopPropagation();
             });
         }
+        var el1 = new joint.shapes.html.Element({
+            position: { x: 500, y: 500 },
+            size: { width: 170, height: 100 },
+            label: 'I am HTML',
+        });
+        el1.position(1000, 1000);
+        el1.addTo(graph);
 
         //var rect2 = activity.clone();
         //rect2.translate(300, 0);
