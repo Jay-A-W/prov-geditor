@@ -59,6 +59,15 @@
   .sidebar button {font-size: 18px;}
 }
 
+.body .button {
+    display: none;
+    cursor: pointer
+}
+
+.body.highlighted .button{
+    display: inline;
+}
+
 .html-element {
     position: absolute;
     background: yellow;

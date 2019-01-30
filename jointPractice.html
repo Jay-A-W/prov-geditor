@@ -48,12 +48,9 @@
                 pointerdblclick: function (evt, x, y) {
                     let input = prompt("Enter element name");
                     let type = this.model.attributes.type.replace("custom.", "");
-                    // NEED TO REGISTER THE CHANGE TO AN ELEMENT IN THE PROV DOC
-                    // ALSO CURRENTLY LABEL TEXT IS NOT BEING USED WHEN CREATING ELEMENTS, A NEW TEXT IS CREATED IN THE SHAPE
-                    //editPROVElement(type, input);
-                    //console.log(this.model.attributes.attrs);
-                    //this.model.attributes.attrs.label.text = "efiji";
-                    //this.model.attr('text/text', input);
+                    let currentName = this.model.attributes.attrs.label.text;
+                    editPROVElement(type, currentName, input);
+                    this.model.attr('label/text', input);
                     //this.model.remove();
                 }
             }),
@@ -61,17 +58,36 @@
                 pointerdblclick: function (evt, x, y) {
                     let input = prompt("Enter element name");
                     this.model.attr('text/text', input);
+                    //NEED TO UPDATE LINK IN PROV BUT IS LINK FREE OR ONLY SET NUMBER OF TYPES
                     //this.model.remove();
                 }
             }),
         });
 
-        function editPROVElement(type, name) {
-            let provElement = doc.scope.statements.filter(elementType => elementType.constructor.name == type).filter(element => element.identifier.localPart == name);
-            console.log(provElement);
+        paper.on('delete:button:pointerdown', function (elementView, evt) {
+            evt.stopPropagation(); // stop any further actions with the element view (e.g. dragging)
+            let model = elementView.model;
+            let type = model.attributes.type.replace("custom.", "");
+            let currentName = model.attributes.attrs.label.text;
+            let provElement = doc.scope.statements.filter(elementType => elementType.constructor.name == type).filter(element => element.identifier.localPart == currentName);
+            let filtered = doc.scope.statements.filter(function (element) {
+                if ((element.constructor.name == type) && (element.identifier.localPart == currentName)) {
+                    return false;
+                } else {
+                    return true;
+                }
+            });
+            doc.scope.statements = filtered;
+            console.log(filtered);
+            model.remove();
+        });
+
+        function editPROVElement(type, currentName, newName) {
+            let provElement = doc.scope.statements.filter(elementType => elementType.constructor.name == type).filter(element => element.identifier.localPart == currentName);
             let prevName = provElement[0].identifier.localPart;
-            provElement[0].identifier.localPart = name;
-            provElement[0].identifier.uri.replace(provElement[0].identifier.localPart, name);
+            provElement[0].identifier.localPart = newName;
+            provElement[0].identifier.uri = provElement[0].identifier.uri.replace(prevName, newName);
+            console.log(provElement);
         };
 
 
@@ -118,19 +134,19 @@
 
                 case 'entity':
                     item = new joint.shapes.custom.Entity();
-                    item.attr('text/text', name);
+                    item.attr('label/text', name);
                     let entity = doc.entity("ex:" + name);
                     break;
 
                 case 'activity':
                     item = new joint.shapes.custom.Activity();
-                    item.attr('text/text', name);
+                    item.attr('label/text', name);
                     let activity = doc.activity("ex:" + name);
                     break;
 
                 case 'agent':
                     item = new joint.shapes.custom.Agent();
-                    item.attr('text/text', name);
+                    item.attr('label/text', name);
                     let agent = doc.agent("ex:" + name);
                     break;
                 default:
@@ -147,9 +163,8 @@
 
         let activity = createItem('activity','writing', 400, 500);
         let entity = createItem('entity', 'story', 400, 230);
-        let entitdy = createItem('entity', 'dwdwwd', 400, 230);
+        let entiety = createItem('entity', 'efwy', 600, 230);
         let agent = createItem('agent', 'writer', 100, 330);
-
 
         var used = link(activity, entity, 'used', [{ x: 400, y: 400 }]);
         var wasGeneratedBy = link(entity, activity, 'wasGeneratedBy', [{ x: 500, y: 400 }]);
