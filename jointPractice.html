@@ -9,6 +9,26 @@
     <!-- content -->
     <div id="prov-editor">
         <sidebar></sidebar>
+        <element-modal></element-modal>
+        <div class="menu">
+            <ul class="menu-options">
+                <li class="menu-option option-wasGeneratedBy" onclick="addRelation('wasGeneratedBy')" hidden>wasGeneratedBy</li>
+                <li class="menu-option option-wasDerivedFrom" onclick="addRelation('wasDerivedFrom')" hidden>wasDerivedFrom</li>
+                <li class="menu-option option-wasAttributedTo" onclick="addRelation('wasAttributedTo')" hidden>wasAttributedTo</li>
+                <li class="menu-option option-used" onclick="addRelation('used')" hidden>used</li>
+                <li class="menu-option option-wasInformedBy" onclick="addRelation('wasInformedBy')" hidden>wasInformedBy</li>
+                <li class="menu-option option-wasAssociatedWith" onclick="addRelation('wasAssociatedWith')" hidden>wasAssociatedWith</li>
+                <li class="menu-option option-actedOnBehalfOf" onclick="addRelation('actedOnBehalfOf')" hidden>actedOnBehalfOf</li>
+                
+                <li class="menu-option option-wasInfluencedBy" onclick="addRelation('wasInfluencedBy')" hidden>wasInfluencedBy</li>
+                <li class="menu-option option-hadPrimarySource" onclick="addRelation('hadPrimarySource')" hidden>hadPrimarySource</li>
+                <li class="menu-option option-wasQuotedFrom" onclick="addRelation('wasQuotedFrom')" hidden>wasQuotedFrom</li>
+                <li class="menu-option option-wasRevisionOf" onclick="addRelation('wasRevisionOf')" hidden>wasRevisionOf</li>
+                <li class="menu-option option-wasInvalidatedBy" onclick="addRelation('wasInvalidatedBy')" hidden>wasInvalidatedBy</li>
+                <li class="menu-option option-wasStartedBy" onclick="addRelation('wasStartedBy')" hidden>wasStartedBy</li>
+                <li class="menu-option option-wasEndedBy" onclick="addRelation('wasEndedBy')" hidden>wasEndedBy</li>
+            </ul>
+        </div>
         <div id="graph"></div>
         <a href="#" onclick="show_doc_json(doc.scope);">exampleexample</a>
     </div>
@@ -26,12 +46,14 @@
     <script src="js/provFunc.js"></script>
     <!-- Vue Declaration -->
     <script src="vue/sidebar.js"></script>
+    <script src="vue/elementModal.js"></script>
+    <script src="vue/utlityFunctions.js"></script>
     <script src="vue/index.js"></script>
     
 
     <!-- code -->
     <script type="text/javascript">
-
+        //CURRENTLY LINKING WITH REVISION, QUOTATION, PRIMARYSOURCE DOES NOT WORK AS API IS MISSING FUNC!!!
         let json = {};
         var graph = new joint.dia.Graph;
 
@@ -42,28 +64,169 @@
             height: 2000,
             gridSize: 1,
             linkPinning: false,
-            defaultLink: new joint.shapes.deviceLink({
+            defaultLink: new joint.shapes.fsa.Arrow({
             }),
             elementView: joint.dia.ElementView.extend({
                 pointerdblclick: function (evt, x, y) {
-                    let input = prompt("Enter element name");
-                    let type = this.model.attributes.type.replace("custom.", "");
-                    let currentName = this.model.attributes.attrs.label.text;
-                    editPROVElement(type, currentName, input);
-                    this.model.attr('label/text', input);
+                    showModal();
+                    //let input = prompt("Enter element name");
+                    //let type = this.model.attributes.type.replace("custom.", "");
+                    //let currentName = this.model.attributes.attrs.label.text;
+                    //editPROVElement(type, currentName, input);
+                    //this.model.attr('label/text', input);
                     //this.model.remove();
                 }
             }),
             linkView: joint.dia.LinkView.extend({
-                pointerdblclick: function (evt, x, y) {
-                    let input = prompt("Enter element name");
-                    this.model.attr('text/text', input);
-                    //NEED TO UPDATE LINK IN PROV BUT IS LINK FREE OR ONLY SET NUMBER OF TYPES
-                    //this.model.remove();
-                }
+     
             }),
         });
 
+        const menu = document.querySelector(".menu");
+        let menuVisible = false;
+
+        const toggleMenu = command => {
+            menu.style.display = command === "show" ? "block" : "none";
+            menuVisible = !menuVisible;
+        };
+
+        const setPosition = ({ top, left }) => {
+            menu.style.left = `${left}px`;
+            menu.style.top = `${top}px`;
+            toggleMenu('show');
+        };
+
+        function showModal(){
+            $("#elementModal").show();
+        };
+
+        function editPROVElement(type, currentName, newName) {
+            let provElement = doc.scope.statements.filter(elementType => elementType.constructor.name == type).filter(element => element.identifier.localPart == currentName);
+            let prevName = provElement[0].identifier.localPart;
+            provElement[0].identifier.localPart = newName;
+            provElement[0].identifier.uri = provElement[0].identifier.uri.replace(prevName, newName);
+        };
+
+        function addRelation(label){
+            store.commit("setCurrentLinkLabel", label);
+            doc[label]("ex:"+store.state.currentSource.id, "ex:"+store.state.currentTarget.id);
+            for (let child of $(".menu-options").children()){
+                child.style.display = "none";
+            }
+            toggleMenu('hide');
+        };
+
+        function hideContextOptions(source, target){
+            let menuOptions = document.querySelector(".menu-options");
+   
+            let sourceType = source.attributes.type;
+            let targetType = target.attributes.type;
+
+            let entity2Entity = ['wasDerivedFrom', 'wasInfluencedBy', 'hadPrimarySource', 'wasQuotedFrom', 'wasRevisionOf'];
+            let entity2Activity = ['wasGeneratedBy', 'wasInfluencedBy', 'wasInvalidatedBy'];
+            let entity2Agent = ['wasAttributedTo', 'wasInfluencedBy'];
+            let activity2Activity = ['wasInformedBy', 'wasInfluencedBy'];
+            let activity2Entity = ['used', 'wasInfluencedBy', 'wasStartedBy', 'wasEndedBy'];
+            let activity2Agent = ['wasAssociatedWith', 'wasInfluencedBy'];
+            let agent2Agent = ['actedOnBehalfOf', 'wasInfluencedBy'];
+            let agent2Entity = ['wasInfluencedBy'];
+            let agent2Activity = ['wasInfluencedBy'];
+            
+            let validOptions;
+            if (sourceType == 'custom.Entity'){
+                switch (targetType){
+                    case 'custom.Entity':
+                        validOptions = entity2Entity;
+                        break;
+                    case 'custom.Activity':
+                        validOptions = entity2Activity;
+                        break;
+                    case 'custom.Agent':
+                        validOptions = entity2Agent;
+                        break;
+                }
+            } else if (sourceType == 'custom.Activity'){
+                switch (targetType){
+                    case 'custom.Entity':
+                        validOptions = activity2Entity;
+                        break;
+                    case 'custom.Activity':
+                        validOptions = activity2Activity;
+                        break;
+                    case 'custom.Agent':
+                        validOptions = activity2Agent;
+                        break;
+                }
+            } else if (sourceType == 'custom.Agent'){
+                switch (targetType){
+                    case 'custom.Entity':
+                        validOptions = agent2Entity;
+                        break;
+                    case 'custom.Activity':
+                        validOptions = agent2Activity;
+                        break;
+                    case 'custom.Agent':
+                        validOptions = agent2Agent;
+                        break;
+                }
+            }
+            for (let option of validOptions){
+                $(".option-"+option).show();
+            }
+        };
+
+        function getElementById(id){
+            for (let element of graph.getElements()){
+                if (element.id === id){
+                    return element;
+                }
+            }
+        };
+
+        //On connection
+        graph.on('change:source change:target', function (link) {
+            let source = link.get('source');
+            let target = link.get('target');
+            if (source.id && target.id) {
+                // both ends of the link are connected.
+                const origin = {
+                    left: event.clientX,
+                    top: event.clientY
+                };
+                setPosition(origin);
+                let sourceElement = getElementById(source.id);
+                let targetElement = getElementById(target.id);
+                
+                hideContextOptions(sourceElement, targetElement);
+                store.commit("setCurrentSource", source);
+                store.commit("setCurrentTarget", target);
+                store.commit("setCurrentLink", link);
+                return false;
+            }
+        })
+
+        graph.on('remove', function(cell, cellView, evt) {
+            if (cell.isLink()) {
+                // a link was removed  (cell.id contains the ID of the removed link)
+                console.log(cell);
+                console.log(doc.scope.statements.filter);
+                //REMEMBER NEED TO REMOVE LINK FROM DOC BY PRESSING X BUTTON ON LINK (TO BE DONE)
+                //let type = model.attributes.type.replace("custom.", "");
+                //let currentName = model.attributes.attrs.label.text;
+                //let provElement = doc.scope.statements.filter(elementType => elementType.constructor.name == type).filter(element => element.identifier.localPart == currentName);
+                //let filtered = doc.scope.statements.filter(function (element) {
+                //    if ((element.constructor.name == type) && (element.identifier.localPart == currentName)) {
+                //        return false;
+                //    } else {
+                //        return true;
+                //    }
+                //});
+                //doc.scope.statements = filtered;
+                //model.remove();
+
+            }
+        })
+    
         paper.on('delete:button:pointerdown', function (elementView, evt) {
             evt.stopPropagation(); // stop any further actions with the element view (e.g. dragging)
             let model = elementView.model;
@@ -78,36 +241,15 @@
                 }
             });
             doc.scope.statements = filtered;
-            console.log(filtered);
             model.remove();
         });
-
-        function editPROVElement(type, currentName, newName) {
-            let provElement = doc.scope.statements.filter(elementType => elementType.constructor.name == type).filter(element => element.identifier.localPart == currentName);
-            let prevName = provElement[0].identifier.localPart;
-            provElement[0].identifier.localPart = newName;
-            provElement[0].identifier.uri = provElement[0].identifier.uri.replace(prevName, newName);
-            console.log(provElement);
-        };
-
-
-        function state(x, y, label) {
-            var cell = new joint.shapes.fsa.State({
-                position: { x: x, y: y },
-                size: { width: 60, height: 60 },
-                attrs: { text: { text: label } }
-            });
-            graph.addCell(cell);
-            return cell;
-        };
 
         function link(source, target, label, vertices) {
             //doc.used("ex:" + source.id, "ex:" + target.id);
             //doc['used']("ex:" + source.id, "ex:" + target.id);
             let labelFunc = doc[label];
 
-            console.log(typeof labelFunc !== 'function');
-
+            //console.log(typeof labelFunc !== 'function');
             if (typeof labelFunc !== 'function') {
                 throw new Error('invalid label type '+label);
             } else {
@@ -126,7 +268,9 @@
 
         let doc = prov.document();
         var def = doc.setDefaultNamespace("http://default.example.com/");
+        store.commit("addPrefixToSet", 'def');
         var ex = doc.addNamespace("ex", "http://www.example.org/");
+        store.commit("addPrefixToSet", 'ex');
 
         function createItem(type,name,x,y) {
             let item;
@@ -163,7 +307,6 @@
 
         let activity = createItem('activity','writing', 400, 500);
         let entity = createItem('entity', 'story', 400, 230);
-        let entiety = createItem('entity', 'efwy', 600, 230);
         let agent = createItem('agent', 'writer', 100, 330);
 
         var used = link(activity, entity, 'used', [{ x: 400, y: 400 }]);
@@ -174,35 +317,18 @@
 
         window.onload = function () {
             document.getElementById("graph").addEventListener("click", function () {
-                console.log(event.clientX + "x" + event.clientY + "y");
+                //console.log(event.clientX + "x" + event.clientY + "y");
+                if(menuVisible)toggleMenu("hide"); //For context menu
                 let activeTool = store.state.activeTool;
                 let pointX = event.clientX-25;
                 let pointY = event.clientY - 25;
                 if (activeTool != "none") {
-                    //console.log(activeTool);
                     createItem(activeTool, activeTool, pointX, pointY);
                 }
                 store.commit('setActiveTool', 'none');
                 event.stopPropagation();
             });
         }
-        var el1 = new joint.shapes.html.Element({
-            position: { x: 500, y: 500 },
-            size: { width: 170, height: 100 },
-            label: 'I am HTML',
-        });
-        el1.position(1000, 1000);
-        el1.addTo(graph);
-
-        //var rect2 = activity.clone();
-        //rect2.translate(300, 0);
-        //rect2.attr('label/text', 'world!');
-        //rect2.addto(graph);
-
-        //var link = new joint.shapes.standard.link();
-        //link.source(activity);
-        //link.target(rect2);
-        //link.addto(graph);
 
         function example() {
             //var e1 = prov.entity("ex:e1");
