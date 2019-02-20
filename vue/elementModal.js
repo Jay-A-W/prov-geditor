@@ -4,8 +4,8 @@
            <div class="modal-content">
                <div class ="input-content">
                    <span class ="close close-input-content" @click='closeInputModal()'>&times; </span>
-                   <input class="input-prefix element-modal-input" type="text" name="Prefix" value="Enter Prefix..." onfocus="this.value=''"></br>
-                   <input class="input-elementName element-modal-input" type="text" name="Element Name" value="Enter Element Name..." onfocus="this.value=''"></br>
+                   <input class="input-prefix modal-input" type="text" name="Prefix" value="Enter Prefix..." onfocus="this.value=''"></br>
+                   <input class="input-elementName modal-input" type="text" name="Element Name" value="Enter Element Name..." onfocus="this.value=''"></br>
                    <button class ="submit-elementModal" @click='submitElement()'>Submit</button>
                </div>
                <div class ="warning-content" hidden>
@@ -30,7 +30,8 @@
     methods: {
         submitElement(){
             if (store.state.prefixSet.includes($(".input-prefix").val())) {
-                $("#elementModal").hide();
+                this.editElement();
+                this.closeInputModal();
             } else {
                 $(".input-content").hide();
                 $(".warning-content").show();
@@ -47,6 +48,16 @@
             $(".input-content").show();
             $(".input-prefix").val("Enter Prefix...");
             $(".input-elementName").val("Enter Element Name...");
+        },
+        editElement() {
+            let element = store.state.currentElement;
+            let type = element.model.attributes.type.replace("custom.", "");
+            let currentName = element.model.attributes.attrs.label.text;
+            let newName = $(".input-elementName").val()
+            let prefix = $(".input-prefix").val()
+            editPROVElement(type, currentName, newName, prefix);
+            store.commit("setCurrentElementLabel", newName);
+            //this.model.remove();
         }
     },
 })

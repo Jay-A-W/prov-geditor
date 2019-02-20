@@ -9,6 +9,7 @@
     <!-- content -->
     <div id="prov-editor">
         <sidebar></sidebar>
+        <namespace-modal></namespace-modal>
         <element-modal></element-modal>
         <div class="menu">
             <ul class="menu-options">
@@ -44,10 +45,11 @@
     <script type="text/javascript" src="lib/prov.js"></script>
     <script type="text/javascript" src="lib/api.js"></script>
     <script src="js/provFunc.js"></script>
+    <script src="js/utlityFunctions.js"></script>
     <!-- Vue Declaration -->
     <script src="vue/sidebar.js"></script>
+    <script src="vue/nameSpaceModal.js"></script>
     <script src="vue/elementModal.js"></script>
-    <script src="vue/utlityFunctions.js"></script>
     <script src="vue/index.js"></script>
     
 
@@ -69,6 +71,7 @@
             elementView: joint.dia.ElementView.extend({
                 pointerdblclick: function (evt, x, y) {
                     showModal();
+                    store.commit("setCurrentElement", this);
                     //let input = prompt("Enter element name");
                     //let type = this.model.attributes.type.replace("custom.", "");
                     //let currentName = this.model.attributes.attrs.label.text;
@@ -98,13 +101,6 @@
 
         function showModal(){
             $("#elementModal").show();
-        };
-
-        function editPROVElement(type, currentName, newName) {
-            let provElement = doc.scope.statements.filter(elementType => elementType.constructor.name == type).filter(element => element.identifier.localPart == currentName);
-            let prevName = provElement[0].identifier.localPart;
-            provElement[0].identifier.localPart = newName;
-            provElement[0].identifier.uri = provElement[0].identifier.uri.replace(prevName, newName);
         };
 
         function addRelation(label){
@@ -260,38 +256,43 @@
                     vertices: vertices || []
                 });
                 graph.addCell(cell);
-
-                doc[label]("ex:"+source.id, "ex:"+target.id);
+                console.log(source);
+                doc[label]("ex:"+source.attributes.attrs.label.text, "ex:"+target.attributes.attrs.label.text);
                 return cell;
             }
         }
 
         let doc = prov.document();
+        store.commit("addPrefixToSet", 'xsd');
+        store.commit("addPrefixToSet", 'prov');
         var def = doc.setDefaultNamespace("http://default.example.com/");
         store.commit("addPrefixToSet", 'def');
         var ex = doc.addNamespace("ex", "http://www.example.org/");
         store.commit("addPrefixToSet", 'ex');
 
-        function createItem(type,name,x,y) {
+        function createElement(type,name,prefix,x,y) {
             let item;
             switch (type) {
 
                 case 'entity':
                     item = new joint.shapes.custom.Entity();
                     item.attr('label/text', name);
-                    let entity = doc.entity("ex:" + name);
+                    item.attr('prefix', prefix);
+                    let entity = doc.entity(prefix + ":" + name);
                     break;
 
                 case 'activity':
                     item = new joint.shapes.custom.Activity();
                     item.attr('label/text', name);
-                    let activity = doc.activity("ex:" + name);
+                    item.attr('prefix', prefix);
+                    let activity = doc.activity(prefix + ":" + name);
                     break;
 
                 case 'agent':
                     item = new joint.shapes.custom.Agent();
                     item.attr('label/text', name);
-                    let agent = doc.agent("ex:" + name);
+                    item.attr('prefix', prefix);
+                    let agent = doc.agent(prefix + ":" + name);
                     break;
                 default:
                     throw new Error('Invalid item type');
@@ -305,9 +306,38 @@
             return item;
         }
 
-        let activity = createItem('activity','writing', 400, 500);
-        let entity = createItem('entity', 'story', 400, 230);
-        let agent = createItem('agent', 'writer', 100, 330);
+        function createElementNoPROV(type,x,y) {
+            let item;
+            switch (type) {
+                case 'entity':
+                    item = new joint.shapes.custom.Entity();
+                    item.attr('label/text', type);
+                    break;
+
+                case 'activity':
+                    item = new joint.shapes.custom.Activity();
+                    item.attr('label/text', type);
+                    break;
+
+                case 'agent':
+                    item = new joint.shapes.custom.Agent();
+                    item.attr('label/text', type);
+                    break;
+                default:
+                    throw new Error('Invalid item type');
+            }
+            item.resize(100, 40);
+
+            if ((x != null) && (y != null)) {
+                item.position(x, y);
+            }
+            item.addTo(graph);
+            return item;
+        }
+
+        let activity = createElement('activity','writing','ex', 400, 500);
+        let entity = createElement('entity', 'story', 'ex', 400, 230);
+        let agent = createElement('agent', 'writer', 'ex', 100, 330);
 
         var used = link(activity, entity, 'used', [{ x: 400, y: 400 }]);
         var wasGeneratedBy = link(entity, activity, 'wasGeneratedBy', [{ x: 500, y: 400 }]);
@@ -323,7 +353,7 @@
                 let pointX = event.clientX-25;
                 let pointY = event.clientY - 25;
                 if (activeTool != "none") {
-                    createItem(activeTool, activeTool, pointX, pointY);
+                    createElementNoPROV(activeTool, pointX, pointY); //Create element with no PROV information
                 }
                 store.commit('setActiveTool', 'none');
                 event.stopPropagation();

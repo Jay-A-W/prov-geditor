@@ -4,7 +4,7 @@ Vue.component('sidebar', {
             <button id="entityTool"><i class ="fa fa-fw fa-square"></i></button>
             <button id="activityTool"><i class ="fa fa-fw fa-square"></i></button>
             <button id="agentTool"><i class ="fa fa-fw fa-caret-up"></i></button>
-            <button id="prefixTool">ex</button>
+            <button id="prefixTool" @click="showNSModal">ex</button>
         </div>
     `
     ,
@@ -26,6 +26,9 @@ Vue.component('sidebar', {
                 store.commit("setActiveTool", className);
                 //console.log(store.state.activeTool);
             });
+        },
+        showNSModal() {
+            $("#namespace-modal").show();
         }
     },
     mounted() {

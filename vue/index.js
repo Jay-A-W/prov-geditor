@@ -6,6 +6,7 @@ const store = new Vuex.Store({
         currentSource: "",
         currentTarget: "",
         currentLink: {},
+        currentElement: {},
         prefixSet: [],
     },
     mutations: {
@@ -40,6 +41,14 @@ const store = new Vuex.Store({
         setCurrentLinkLabel(state, label){
             state.currentLink.label("attr/text/font-weight", 'bold');
             state.currentLink.label("attr/label", { position: .5, attrs: { text: { text: label || '', 'font-weight': 'bold' } } });
+        },
+
+        setCurrentElement(state, element) {
+            state.currentElement = element;
+        },
+
+        setCurrentElementLabel(state, label) {
+            state.currentElement.model.attr('label/text', label);
         },
 
         addPrefixToSet(state, prefix) {
