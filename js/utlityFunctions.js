@@ -2,6 +2,15 @@
 
 }
 
+function getProvAsJSON(doc) {
+    return doc.scope.getProvJSON();
+}
+function insensitiveStringCompare(string1, string2) {
+    return typeof string1 === 'string' && typeof string2 === 'string'
+        ? string1.localeCompare(string2, undefined, { sensitivity: 'accent' }) === 0
+        : string1 === string2;
+}
+
 function editPROVElement(type, currentName, newName, prefix) {
 
     let provElement = doc.scope.statements.filter(elementType => elementType.constructor.name == type).filter(element => element.identifier.localPart == currentName);

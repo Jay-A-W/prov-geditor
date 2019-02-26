@@ -11,6 +11,7 @@
         <sidebar></sidebar>
         <namespace-modal></namespace-modal>
         <element-modal></element-modal>
+        <export-modal></export-modal>
         <div class="menu">
             <ul class="menu-options">
                 <li class="menu-option option-wasGeneratedBy" onclick="addRelation('wasGeneratedBy')" hidden>wasGeneratedBy</li>
@@ -50,6 +51,7 @@
     <script src="vue/sidebar.js"></script>
     <script src="vue/nameSpaceModal.js"></script>
     <script src="vue/elementModal.js"></script>
+    <script src="vue/exportModal.js"></script>
     <script src="vue/index.js"></script>
     
 
@@ -201,11 +203,64 @@
             }
         })
 
+        function deleteRelationInDoc(link){
+            let relType = link.attributes.attrs.relType;
+            let linksInDoc;
+            let qualifiedInfluence;
+            let sourceType = getElementById(link.attributes.source.id).attributes.type.replace("custom.", "");
+            let targetType = getElementById(link.attributes.target.id).attributes.type.replace("custom.", "");
+            console.log(sourceType);
+            //console.log(link);
+            switch (relType) {
+                case "wasGeneratedBy":
+                    qualifiedInfluence = "Generation";
+                    linksInDoc = doc.scope.statements.filter(type => type.constructor.name == qualifiedInfluence)
+                    //console.log("linkindoc",linksInDoc);
+                    for (let link of linksInDoc) {
+                        console.log(link.properties.hasOwnProperty('entity'));
+                    }
+                    break;
+                case "wasDerivedFrom":
+                    break;
+                case "wasAttributedTo":
+                    qualifiedInfluence = "Attribution";
+                    linksInDoc = doc.scope.statements.filter(type => type.constructor.name == qualifiedInfluence)
+                    console.log("linkindoc",linksInDoc);
+                    for (let link of linksInDoc) {
+                        
+                    }
+                    break;
+                case "used":
+                    break;
+                case "wasInformedBy":
+                    break;
+                case "wasAssociatedWith":
+                    break;
+                case "actedOnBehalfOf":
+                    break;
+                case "wasInfluencedBy":
+                    break;
+                case "hadPrimarySource":
+                    break;
+                case "wasQuotedFrom":
+                    break;
+                case "wasRevisionOf":
+                    break;
+                case "wasInvalidatedBy":
+                    break;
+                case "wasStartedBy":
+                    break;
+                case "wasEndedBy":
+                    break;
+            }
+            //console.log(link);
+            //console.log(doc.scope.statements);
+        };
+
         graph.on('remove', function(cell, cellView, evt) {
             if (cell.isLink()) {
                 // a link was removed  (cell.id contains the ID of the removed link)
-                console.log(cell);
-                console.log(doc.scope.statements.filter);
+                deleteRelationInDoc(cell);
                 //REMEMBER NEED TO REMOVE LINK FROM DOC BY PRESSING X BUTTON ON LINK (TO BE DONE)
                 //let type = model.attributes.type.replace("custom.", "");
                 //let currentName = model.attributes.attrs.label.text;
@@ -256,7 +311,8 @@
                     vertices: vertices || []
                 });
                 graph.addCell(cell);
-                console.log(source);
+                store.commit("setCurrentLink", cell);
+                store.commit("setCurrentLinkLabel", label);
                 doc[label]("ex:"+source.attributes.attrs.label.text, "ex:"+target.attributes.attrs.label.text);
                 return cell;
             }

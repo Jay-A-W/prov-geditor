@@ -1,6 +1,6 @@
 ﻿Vue.component('element-modal', {
     template: `
-       <div id="elementModal" hidden>
+       <div id="elementModal" class="modal" hidden>
            <div class="modal-content">
                <div class ="input-content">
                    <span class ="close close-input-content" @click='closeInputModal()'>&times; </span>

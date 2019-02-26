@@ -1,6 +1,6 @@
 ﻿Vue.component('namespace-modal', {
     template: `
-       <div id="namespace-modal" hidden>
+       <div id="namespace-modal" class="modal" hidden>
            <div class="modal-content">
                <div class ="ns-input-content">
                    <span class ="close close-ns-input-content" @click='closeInputModal()'>&times; </span>

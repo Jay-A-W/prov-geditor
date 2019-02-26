@@ -41,6 +41,7 @@ const store = new Vuex.Store({
         setCurrentLinkLabel(state, label){
             state.currentLink.label("attr/text/font-weight", 'bold');
             state.currentLink.label("attr/label", { position: .5, attrs: { text: { text: label || '', 'font-weight': 'bold' } } });
+            state.currentLink.attr("relType", label);
         },
 
         setCurrentElement(state, element) {

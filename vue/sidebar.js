@@ -4,7 +4,9 @@ Vue.component('sidebar', {
             <button id="entityTool"><i class ="fa fa-fw fa-square"></i></button>
             <button id="activityTool"><i class ="fa fa-fw fa-square"></i></button>
             <button id="agentTool"><i class ="fa fa-fw fa-caret-up"></i></button>
-            <button id="prefixTool" @click="showNSModal">ex</button>
+            <button id="prefixTool" @click="showNSModal()">ex</button>
+            <button id="ajaxTool" @click="showExportModal()">ajax</button>
+
         </div>
     `
     ,
@@ -29,7 +31,10 @@ Vue.component('sidebar', {
         },
         showNSModal() {
             $("#namespace-modal").show();
-        }
+        },
+        showExportModal() {
+            $("#export-modal").show();
+        },
     },
     mounted() {
         this.addClickListener("entityTool");
