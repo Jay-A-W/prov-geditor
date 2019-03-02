@@ -53,10 +53,12 @@
             let element = store.state.currentElement;
             let type = element.model.attributes.type.replace("custom.", "");
             let currentName = element.model.attributes.attrs.label.text;
-            let newName = $(".input-elementName").val()
-            let prefix = $(".input-prefix").val()
+            let newName = $(".input-elementName").val();
+            let prefix = $(".input-prefix").val();
+            element.model.attr('body/magnet', true);
             editPROVElement(type, currentName, newName, prefix);
             store.commit("setCurrentElementLabel", newName);
+            localStorage.setItem('graph', JSON.stringify(graph));
             //this.model.remove();
         }
     },

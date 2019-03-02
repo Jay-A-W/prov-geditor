@@ -58,11 +58,19 @@
     <!-- code -->
     <script type="text/javascript">
         //CURRENTLY LINKING WITH REVISION, QUOTATION, PRIMARYSOURCE DOES NOT WORK AS API IS MISSING FUNC!!!
+
+        let doc = prov.document();
+        store.commit("addPrefixToSet", 'xsd');
+        store.commit("addPrefixToSet", 'prov');
+        var def = doc.setDefaultNamespace("http://default.example.com/");
+        store.commit("addPrefixToSet", 'def');
+        var ex = doc.addNamespace("ex", "http://www.example.org/");
+        store.commit("addPrefixToSet", 'ex');
+
         let json = {};
         let graph = new joint.dia.Graph;
-        console.log(JSON.stringify(graph));
 
-
+        //localStorage.clear();
         var paper = new joint.dia.Paper({
             el: document.getElementById('graph'),
             model: graph,
@@ -70,7 +78,7 @@
             height: 2000,
             gridSize: 1,
             linkPinning: false,
-            defaultLink: new joint.shapes.fsa.Arrow({
+            defaultLink: new joint.shapes.custom.fsa.Arrow({
             }),
             elementView: joint.dia.ElementView.extend({
                 pointerdblclick: function (evt, x, y) {
@@ -88,6 +96,15 @@
      
             }),
         });
+
+        if (localStorage.getItem('graph')) { //HAS TO BE DONE AFTER INSTANTIATION OF PAPER AS PAPER IS WHAT REACTS TO UPDATE GRAPH VISUALLY
+            graph.fromJSON(JSON.parse(localStorage.getItem('graph')));
+        }
+       
+        //if (localStorage.getItem('doc')) {  //LOCAL STORAGE OF DOC needs to be done
+        //    console.log(localStorage.getItem('doc'));
+        //    doc = localStorage.getItem('doc');
+        //}
 
         const menu = document.querySelector(".menu");
         let menuVisible = false;
@@ -109,7 +126,8 @@
 
         function addRelation(label){
             store.commit("setCurrentLinkLabel", label);
-            doc[label]("ex:"+store.state.currentSource.id, "ex:"+store.state.currentTarget.id);
+            doc[label]("ex:" + store.state.currentSource.attributes.attrs.label.text, "ex:" + store.state.currentTarget.attributes.attrs.label.text);
+            localStorage.setItem('graph', JSON.stringify(graph));
             for (let child of $(".menu-options").children()){
                 child.style.display = "none";
             }
@@ -122,7 +140,8 @@
             let sourceType = source.attributes.type;
             let targetType = target.attributes.type;
 
-            let entity2Entity = ['wasDerivedFrom', 'wasInfluencedBy', 'hadPrimarySource', 'wasQuotedFrom', 'wasRevisionOf'];
+            //let entity2Entity = ['wasDerivedFrom', 'wasInfluencedBy', 'hadPrimarySource', 'wasQuotedFrom', 'wasRevisionOf']; wasPrimary, Quoted and Revision has not been incorporate into the PROV api yet
+            let entity2Entity = ['wasDerivedFrom', 'wasInfluencedBy'];
             let entity2Activity = ['wasGeneratedBy', 'wasInfluencedBy', 'wasInvalidatedBy'];
             let entity2Agent = ['wasAttributedTo', 'wasInfluencedBy'];
             let activity2Activity = ['wasInformedBy', 'wasInfluencedBy'];
@@ -198,86 +217,178 @@
                 let targetElement = getElementById(target.id);
                 
                 hideContextOptions(sourceElement, targetElement);
-                store.commit("setCurrentSource", source);
-                store.commit("setCurrentTarget", target);
+                store.commit("setCurrentSource", getElementById(source.id));
+                store.commit("setCurrentTarget", getElementById(target.id));
                 store.commit("setCurrentLink", link);
+                //console.log(graph);
                 return false;
             }
         })
 
+        function filterOutLink(link, qualifiedInfluence) {
+            let source = getElementById(link.attributes.source.id);
+            let target = getElementById(link.attributes.target.id);
+            let sourceType = source.attributes.type.replace("custom.", "");
+            let targetType = target.attributes.type.replace("custom.", "");
+            let filtered = doc.scope.statements.filter(function (link) {
+                if (link.constructor.name == qualifiedInfluence) {
+                    if ((link.properties.hasOwnProperty(sourceType.toLowerCase())) && (link.properties.hasOwnProperty(targetType.toLowerCase()))) {
+                        if ((link[sourceType.toLowerCase()].localPart == source.attributes.attrs.label.text) && (link[targetType.toLowerCase()].localPart == target.attributes.attrs.label.text)) {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            });
+            return filtered;
+        }
         function deleteRelationInDoc(link){
             let relType = link.attributes.attrs.relType;
-            let linksInDoc;
             let qualifiedInfluence;
-            let sourceType = getElementById(link.attributes.source.id).attributes.type.replace("custom.", "");
-            let targetType = getElementById(link.attributes.target.id).attributes.type.replace("custom.", "");
-            console.log(sourceType);
-            //console.log(link);
+            let filtered;
+            let source = getElementById(link.attributes.source.id);
+            let target = getElementById(link.attributes.target.id);
+            let sourceType = source.attributes.type.replace("custom.", "");
+            let targetType = target.attributes.type.replace("custom.", "");
             switch (relType) {
                 case "wasGeneratedBy":
                     qualifiedInfluence = "Generation";
-                    linksInDoc = doc.scope.statements.filter(type => type.constructor.name == qualifiedInfluence)
-                    //console.log("linkindoc",linksInDoc);
-                    for (let link of linksInDoc) {
-                        console.log(link.properties.hasOwnProperty('entity'));
-                    }
+                    filtered = filterOutLink(link, qualifiedInfluence);
+                    doc.scope.statements = filtered;
                     break;
                 case "wasDerivedFrom":
+                    qualifiedInfluence = "Derivation";
+                    filtered = doc.scope.statements.filter(function (link) {
+                        if (link.constructor.name == qualifiedInfluence) {
+                            if ((link.properties.hasOwnProperty('generatedEntity') && (link.properties.hasOwnProperty('usedEntity')))) {
+                                if ((link['generatedEntity'].localPart == source.attributes.attrs.label.text) && (link['usedEntity'].localPart == target.attributes.attrs.label.text)) {
+                                    return false;
+                                }
+                            }
+                        }
+                        return true;
+                    });
+                    doc.scope.statements = filtered;
                     break;
                 case "wasAttributedTo":
                     qualifiedInfluence = "Attribution";
-                    linksInDoc = doc.scope.statements.filter(type => type.constructor.name == qualifiedInfluence)
-                    console.log("linkindoc",linksInDoc);
-                    for (let link of linksInDoc) {
-                        
-                    }
+                    filtered = filterOutLink(link, qualifiedInfluence);
+                    doc.scope.statements = filtered;
                     break;
                 case "used":
+                    qualifiedInfluence = "Usage";
+                    filtered = filterOutLink(link, qualifiedInfluence);
+                    doc.scope.statements = filtered;
                     break;
                 case "wasInformedBy":
+                    qualifiedInfluence = "Communication";
+                    filtered = doc.scope.statements.filter(function (link) {
+                        if (link.constructor.name == qualifiedInfluence) {
+                            if ((link.properties.hasOwnProperty('informed') && (link.properties.hasOwnProperty('informant')))) {
+                                if ((link['informed'].localPart == source.attributes.attrs.label.text) && (link['informant'].localPart == target.attributes.attrs.label.text)) {
+                                    return false;
+                                }
+                            }
+                        }
+                        return true;
+                    });
+                    doc.scope.statements = filtered;
                     break;
                 case "wasAssociatedWith":
+                    qualifiedInfluence = "Association";
+                    filtered = filterOutLink(link, qualifiedInfluence);
+                    doc.scope.statements = filtered;
                     break;
                 case "actedOnBehalfOf":
+                    qualifiedInfluence = "Delegation";
+                    filtered = doc.scope.statements.filter(function (link) {
+                        if (link.constructor.name == qualifiedInfluence) {
+                            if ((link.properties.hasOwnProperty('delegate') && (link.properties.hasOwnProperty('responsible')))) {
+                                if ((link['delegate'].localPart == source.attributes.attrs.label.text) && (link['responsible'].localPart == target.attributes.attrs.label.text)) {
+                                    return false;
+                                }
+                            }
+                        }
+                        return true;
+                    });
+                    doc.scope.statements = filtered;
                     break;
                 case "wasInfluencedBy":
+                    qualifiedInfluence = "Influence";
+                    filtered = doc.scope.statements.filter(function (link) {
+                        if (link.constructor.name == qualifiedInfluence) {
+                            if ((link.properties.hasOwnProperty('influencee') && (link.properties.hasOwnProperty('influencer')))) {
+                                if ((link['influencee'].localPart == source.attributes.attrs.label.text) && (link['influencer'].localPart == target.attributes.attrs.label.text)) {
+                                    return false;
+                                }
+                            }
+                        }
+                        return true;
+                    });
+                    doc.scope.statements = filtered;
                     break;
                 case "hadPrimarySource":
+                    qualifiedInfluence = "PrimarySource";
+                    filtered = filterOutLink(link, qualifiedInfluence);
+                    doc.scope.statements = filtered;
                     break;
                 case "wasQuotedFrom":
+                    qualifiedInfluence = "Quotation";
+                    filtered = filterOutLink(link, qualifiedInfluence);
+                    doc.scope.statements = filtered;
                     break;
                 case "wasRevisionOf":
+                    qualifiedInfluence = "Revision";
+                    filtered = filterOutLink(link, qualifiedInfluence);
+                    doc.scope.statements = filtered;
                     break;
                 case "wasInvalidatedBy":
+                    qualifiedInfluence = "Invalidation";
+                    filtered = filterOutLink(link, qualifiedInfluence);
+                    doc.scope.statements = filtered;
                     break;
                 case "wasStartedBy":
+                    qualifiedInfluence = "Start";
+                    filtered = doc.scope.statements.filter(function (link) {
+                        if (link.constructor.name == qualifiedInfluence) {
+                            if ((link.properties.hasOwnProperty(sourceType.toLowerCase()) && (link.properties.hasOwnProperty('trigger')))) {
+                                if ((link[sourceType.toLowerCase()].localPart == source.attributes.attrs.label.text) && (link['trigger'].localPart == target.attributes.attrs.label.text)) {
+                                    return false;
+                                }
+                            }
+                        }
+                        return true;
+                    });
+                    doc.scope.statements = filtered;
                     break;
                 case "wasEndedBy":
+                    qualifiedInfluence = "End";
+                    filtered = doc.scope.statements.filter(function (link) {
+                        if (link.constructor.name == qualifiedInfluence) {
+                            if ((link.properties.hasOwnProperty(sourceType.toLowerCase()) && (link.properties.hasOwnProperty('trigger')))) {
+                                if ((link[sourceType.toLowerCase()].localPart == source.attributes.attrs.label.text) && (link['trigger'].localPart == target.attributes.attrs.label.text)) {
+                                    return false;
+                                }
+                            }
+                        }
+                        return true;
+                    });
+                    doc.scope.statements = filtered;
                     break;
             }
             //console.log(link);
             //console.log(doc.scope.statements);
         };
 
-        graph.on('remove', function(cell, cellView, evt) {
-            if (cell.isLink()) {
-                // a link was removed  (cell.id contains the ID of the removed link)
-                deleteRelationInDoc(cell);
-                //REMEMBER NEED TO REMOVE LINK FROM DOC BY PRESSING X BUTTON ON LINK (TO BE DONE)
-                //let type = model.attributes.type.replace("custom.", "");
-                //let currentName = model.attributes.attrs.label.text;
-                //let provElement = doc.scope.statements.filter(elementType => elementType.constructor.name == type).filter(element => element.identifier.localPart == currentName);
-                //let filtered = doc.scope.statements.filter(function (element) {
-                //    if ((element.constructor.name == type) && (element.identifier.localPart == currentName)) {
-                //        return false;
-                //    } else {
-                //        return true;
-                //    }
-                //});
-                //doc.scope.statements = filtered;
-                //model.remove();
+        //graph.on('remove', function(cell, cellView, evt) {
+        //    if (cell.isLink()) {
+        //    }
+        //})
 
-            }
+        paper.on('tool:remove', function (link, linkView, evt) {
+            deleteRelationInDoc(link.model);
+            link.model.remove();
+            localStorage.setItem('graph', JSON.stringify(graph));
         })
     
         paper.on('delete:button:pointerdown', function (elementView, evt) {
@@ -285,7 +396,12 @@
             let model = elementView.model;
             let type = model.attributes.type.replace("custom.", "");
             let currentName = model.attributes.attrs.label.text;
-            let provElement = doc.scope.statements.filter(elementType => elementType.constructor.name == type).filter(element => element.identifier.localPart == currentName);
+            //let provElement = doc.scope.statements.filter(elementType => elementType.constructor.name == type).filter(element => element.identifier.localPart == currentName);
+            let connectedLinks = graph.getConnectedLinks(model);
+            for (let link of connectedLinks) {
+                link.remove();
+                deleteRelationInDoc(link);
+            }
             let filtered = doc.scope.statements.filter(function (element) {
                 if ((element.constructor.name == type) && (element.identifier.localPart == currentName)) {
                     return false;
@@ -295,6 +411,7 @@
             });
             doc.scope.statements = filtered;
             model.remove();
+            localStorage.setItem('graph', JSON.stringify(graph));
         });
 
         function link(source, target, label, vertices) {
@@ -320,49 +437,41 @@
             }
         }
 
-        let doc = prov.document();
-        store.commit("addPrefixToSet", 'xsd');
-        store.commit("addPrefixToSet", 'prov');
-        var def = doc.setDefaultNamespace("http://default.example.com/");
-        store.commit("addPrefixToSet", 'def');
-        var ex = doc.addNamespace("ex", "http://www.example.org/");
-        store.commit("addPrefixToSet", 'ex');
+        //function createElement(type,name,prefix,x,y) {
+        //    let item;
+        //    switch (type) {
 
-        function createElement(type,name,prefix,x,y) {
-            let item;
-            switch (type) {
+        //        case 'entity':
+        //            item = new joint.shapes.custom.Entity();
+        //            item.attr('label/text', name);
+        //            item.attr('prefix', prefix);
+        //            let entity = doc.entity(prefix + ":" + name);
+        //            break;
 
-                case 'entity':
-                    item = new joint.shapes.custom.Entity();
-                    item.attr('label/text', name);
-                    item.attr('prefix', prefix);
-                    let entity = doc.entity(prefix + ":" + name);
-                    break;
+        //        case 'activity':
+        //            item = new joint.shapes.custom.Activity();
+        //            item.attr('label/text', name);
+        //            item.attr('prefix', prefix);
+        //            let activity = doc.activity(prefix + ":" + name);
+        //            break;
 
-                case 'activity':
-                    item = new joint.shapes.custom.Activity();
-                    item.attr('label/text', name);
-                    item.attr('prefix', prefix);
-                    let activity = doc.activity(prefix + ":" + name);
-                    break;
+        //        case 'agent':
+        //            item = new joint.shapes.custom.Agent();
+        //            item.attr('label/text', name);
+        //            item.attr('prefix', prefix);
+        //            let agent = doc.agent(prefix + ":" + name);
+        //            break;
+        //        default:
+        //            throw new Error('Invalid item type');
+        //    }
+        //    item.resize(100, 40);
 
-                case 'agent':
-                    item = new joint.shapes.custom.Agent();
-                    item.attr('label/text', name);
-                    item.attr('prefix', prefix);
-                    let agent = doc.agent(prefix + ":" + name);
-                    break;
-                default:
-                    throw new Error('Invalid item type');
-            }
-            item.resize(100, 40);
-
-            if ((x != null) && (y != null)) {
-                item.position(x, y);
-            }
-            item.addTo(graph);
-            return item;
-        }
+        //    if ((x != null) && (y != null)) {
+        //        item.position(x, y);
+        //    }
+        //    item.addTo(graph);
+        //    return item;
+        //}
 
         function createElementNoPROV(type,x,y) {
             let item;
@@ -390,20 +499,20 @@
                 item.position(x, y);
             }
             item.addTo(graph);
+            item.attr('body/magnet', 'passive');
             localStorage.setItem('graph', JSON.stringify(graph));
-            console.log(JSON.stringify(graph));
             return item;
         }
 
-        let activity = createElement('activity','writing','ex', 400, 500);
-        let entity = createElement('entity', 'story', 'ex', 400, 230);
-        let agent = createElement('agent', 'writer', 'ex', 100, 330);
+        //let activity = createElement('activity','writing','ex', 400, 500);
+        //let entity = createElement('entity', 'story', 'ex', 400, 230);
+        //let agent = createElement('agent', 'writer', 'ex', 100, 330);
 
-        var used = link(activity, entity, 'used', [{ x: 400, y: 400 }]);
-        var wasGeneratedBy = link(entity, activity, 'wasGeneratedBy', [{ x: 500, y: 400 }]);
-        var wasDerivedFrom = link(entity, entity, 'wasDerivedFrom', [{ x: 400, y: 150 }, { x: 500, y: 150 }]);
-        var wasAttributedTo = link(entity, agent, 'wasAttributedTo');
-        var wasAssociatedWith = link(activity, agent, 'wasAssociatedWith');
+        //var used = link(activity, entity, 'used', [{ x: 400, y: 400 }]);
+        //var wasGeneratedBy = link(entity, activity, 'wasGeneratedBy', [{ x: 500, y: 400 }]);
+        //var wasDerivedFrom = link(entity, entity, 'wasDerivedFrom', [{ x: 400, y: 150 }, { x: 500, y: 150 }]);
+        //var wasAttributedTo = link(entity, agent, 'wasAttributedTo');
+        //var wasAssociatedWith = link(activity, agent, 'wasAssociatedWith');
 
         window.onload = function () {
             document.getElementById("graph").addEventListener("click", function () {
@@ -419,6 +528,7 @@
                 event.stopPropagation();
             });
         }
+
         localStorage.setItem('graph', JSON.stringify(graph));
     
     </script>

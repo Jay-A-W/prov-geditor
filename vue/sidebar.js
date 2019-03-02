@@ -6,6 +6,7 @@ Vue.component('sidebar', {
             <button id="agentTool"><i class ="fa fa-fw fa-caret-up"></i></button>
             <button id="prefixTool" @click="showNSModal()">ex</button>
             <button id="ajaxTool" @click="showExportModal()">ajax</button>
+            <button id="clearTool" @click="clearGraph()">clear</button>
 
         </div>
     `
@@ -35,6 +36,10 @@ Vue.component('sidebar', {
         showExportModal() {
             $("#export-modal").show();
         },
+        clearGraph() {
+            graph.clear();
+            localStorage.clear();
+        }
     },
     mounted() {
         this.addClickListener("entityTool");
