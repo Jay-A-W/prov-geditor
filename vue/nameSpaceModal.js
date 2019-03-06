@@ -6,7 +6,7 @@
                    <span class ="close close-ns-input-content" @click='closeInputModal()'>&times; </span>
                    <input class="ns-input-prefix modal-input" type="text" name="Prefix" value="Enter Prefix..." onfocus="this.value=''"></br>
                    <input class="ns-input-URI modal-input" type="text" name="URI" value="Enter URI..." onfocus="this.value=''"></br>
-                   <button class ="submit-nsModal" @click='submitNS()'>Submit</button>
+                   <button class ="submit nsModal" @click='submitNS()'>Submit</button>
                </div>
                <div class ="ns-warning-content" hidden>
                     <span class ="close ns-close-warning-content" @click='closeWarning()'>&times; </span>
@@ -38,8 +38,8 @@
                 store.commit("addPrefixToSet", prefix);
                 this.closeInputModal();
             } else {
-                $(".input-content").hide();
-                $(".warning-content").show();
+                $(".ns-input-content").hide();
+                $(".ns-warning-content").show();
             }
         },
         closeInputModal() {

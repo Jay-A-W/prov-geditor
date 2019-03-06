@@ -6,7 +6,7 @@ const store = new Vuex.Store({
         currentSource: "",
         currentTarget: "",
         currentLink: {},
-        currentElement: {},
+        currentElement: "undefined",
         prefixSet: [],
 
     },
@@ -62,7 +62,7 @@ const store = new Vuex.Store({
                 return false;
             }
         }
-    }
+    },
 })
 
 var provEditor = new Vue({

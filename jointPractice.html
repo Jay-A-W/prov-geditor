@@ -4,6 +4,8 @@
     <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/jointjs/2.1.0/joint.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" type="text/css" href="css/editor.css">
+    <link rel="stylesheet" type="text/css" href="lib/jquery-ui-1.12.1/jquery-ui.css">
+    <link rel="stylesheet" type="text/css" href="css/jquery-ui-timepicker-addon.css">
 </head>
 <body>
     <!-- content -->
@@ -12,6 +14,7 @@
         <namespace-modal></namespace-modal>
         <element-modal></element-modal>
         <export-modal></export-modal>
+        <link-modal></link-modal>
         <div class="menu">
             <ul class="menu-options">
                 <li class="menu-option option-wasGeneratedBy" onclick="addRelation('wasGeneratedBy')" hidden>wasGeneratedBy</li>
@@ -21,7 +24,7 @@
                 <li class="menu-option option-wasInformedBy" onclick="addRelation('wasInformedBy')" hidden>wasInformedBy</li>
                 <li class="menu-option option-wasAssociatedWith" onclick="addRelation('wasAssociatedWith')" hidden>wasAssociatedWith</li>
                 <li class="menu-option option-actedOnBehalfOf" onclick="addRelation('actedOnBehalfOf')" hidden>actedOnBehalfOf</li>
-                
+
                 <li class="menu-option option-wasInfluencedBy" onclick="addRelation('wasInfluencedBy')" hidden>wasInfluencedBy</li>
                 <li class="menu-option option-hadPrimarySource" onclick="addRelation('hadPrimarySource')" hidden>hadPrimarySource</li>
                 <li class="menu-option option-wasQuotedFrom" onclick="addRelation('wasQuotedFrom')" hidden>wasQuotedFrom</li>
@@ -39,6 +42,8 @@
     <script src="https://unpkg.com/vuex"></script>
     <script src="https://cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.auto.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.js"></script>
+    <script src="lib/jquery-ui-1.12.1/jquery-ui.js"></script>
+    <script src="lib/jquery-ui-timepicker-addon.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/3.10.1/lodash.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/backbone.js/1.3.3/backbone.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jointjs/2.1.0/joint.js"></script>
@@ -51,10 +56,9 @@
     <script src="vue/sidebar.js"></script>
     <script src="vue/nameSpaceModal.js"></script>
     <script src="vue/elementModal.js"></script>
+    <script src="vue/linkModal.js"></script>
     <script src="vue/exportModal.js"></script>
     <script src="vue/index.js"></script>
-    
-
     <!-- code -->
     <script type="text/javascript">
         //CURRENTLY LINKING WITH REVISION, QUOTATION, PRIMARYSOURCE DOES NOT WORK AS API IS MISSING FUNC!!!
@@ -63,7 +67,7 @@
         store.commit("addPrefixToSet", 'xsd');
         store.commit("addPrefixToSet", 'prov');
         var def = doc.setDefaultNamespace("http://default.example.com/");
-        store.commit("addPrefixToSet", 'def');
+        store.commit("addPrefixToSet", 'default');
         var ex = doc.addNamespace("ex", "http://www.example.org/");
         store.commit("addPrefixToSet", 'ex');
 
@@ -82,8 +86,8 @@
             }),
             elementView: joint.dia.ElementView.extend({
                 pointerdblclick: function (evt, x, y) {
-                    showModal();
                     store.commit("setCurrentElement", this);
+                    $("#elementModal").show();
                     //let input = prompt("Enter element name");
                     //let type = this.model.attributes.type.replace("custom.", "");
                     //let currentName = this.model.attributes.attrs.label.text;
@@ -93,19 +97,23 @@
                 }
             }),
             linkView: joint.dia.LinkView.extend({
-     
+                pointerdblclick: function (evt, x, y) {
+                    if (this.model.attributes.labels[0].attrs.text.text == "wasGeneratedBy") {
+                        store.commit("setCurrentLink", this);
+                        $("#linkModal").show();
+                    }
+                }
             }),
         });
 
         if (localStorage.getItem('graph')) { //HAS TO BE DONE AFTER INSTANTIATION OF PAPER AS PAPER IS WHAT REACTS TO UPDATE GRAPH VISUALLY
             graph.fromJSON(JSON.parse(localStorage.getItem('graph')));
         }
-       
+
         //if (localStorage.getItem('doc')) {  //LOCAL STORAGE OF DOC needs to be done
         //    console.log(localStorage.getItem('doc'));
         //    doc = localStorage.getItem('doc');
         //}
-
         const menu = document.querySelector(".menu");
         let menuVisible = false;
 
@@ -120,23 +128,19 @@
             toggleMenu('show');
         };
 
-        function showModal(){
-            $("#elementModal").show();
-        };
-
-        function addRelation(label){
+        function addRelation(label) {
             store.commit("setCurrentLinkLabel", label);
             doc[label]("ex:" + store.state.currentSource.attributes.attrs.label.text, "ex:" + store.state.currentTarget.attributes.attrs.label.text);
             localStorage.setItem('graph', JSON.stringify(graph));
-            for (let child of $(".menu-options").children()){
+            for (let child of $(".menu-options").children()) {
                 child.style.display = "none";
             }
             toggleMenu('hide');
         };
 
-        function hideContextOptions(source, target){
+        function hideContextOptions(source, target) {
             let menuOptions = document.querySelector(".menu-options");
-   
+
             let sourceType = source.attributes.type;
             let targetType = target.attributes.type;
 
@@ -150,10 +154,10 @@
             let agent2Agent = ['actedOnBehalfOf', 'wasInfluencedBy'];
             let agent2Entity = ['wasInfluencedBy'];
             let agent2Activity = ['wasInfluencedBy'];
-            
+
             let validOptions;
-            if (sourceType == 'custom.Entity'){
-                switch (targetType){
+            if (sourceType == 'custom.Entity') {
+                switch (targetType) {
                     case 'custom.Entity':
                         validOptions = entity2Entity;
                         break;
@@ -164,8 +168,8 @@
                         validOptions = entity2Agent;
                         break;
                 }
-            } else if (sourceType == 'custom.Activity'){
-                switch (targetType){
+            } else if (sourceType == 'custom.Activity') {
+                switch (targetType) {
                     case 'custom.Entity':
                         validOptions = activity2Entity;
                         break;
@@ -176,8 +180,8 @@
                         validOptions = activity2Agent;
                         break;
                 }
-            } else if (sourceType == 'custom.Agent'){
-                switch (targetType){
+            } else if (sourceType == 'custom.Agent') {
+                switch (targetType) {
                     case 'custom.Entity':
                         validOptions = agent2Entity;
                         break;
@@ -189,14 +193,14 @@
                         break;
                 }
             }
-            for (let option of validOptions){
-                $(".option-"+option).show();
+            for (let option of validOptions) {
+                $(".option-" + option).show();
             }
         };
 
-        function getElementById(id){
-            for (let element of graph.getElements()){
-                if (element.id === id){
+        function getElementById(id) {
+            for (let element of graph.getElements()) {
+                if (element.id === id) {
                     return element;
                 }
             }
@@ -215,7 +219,7 @@
                 setPosition(origin);
                 let sourceElement = getElementById(source.id);
                 let targetElement = getElementById(target.id);
-                
+
                 hideContextOptions(sourceElement, targetElement);
                 store.commit("setCurrentSource", getElementById(source.id));
                 store.commit("setCurrentTarget", getElementById(target.id));
@@ -242,7 +246,7 @@
             });
             return filtered;
         }
-        function deleteRelationInDoc(link){
+        function deleteRelationInDoc(link) {
             let relType = link.attributes.attrs.relType;
             let qualifiedInfluence;
             let filtered;
@@ -390,7 +394,7 @@
             link.model.remove();
             localStorage.setItem('graph', JSON.stringify(graph));
         })
-    
+
         paper.on('delete:button:pointerdown', function (elementView, evt) {
             evt.stopPropagation(); // stop any further actions with the element view (e.g. dragging)
             let model = elementView.model;
@@ -421,7 +425,7 @@
 
             //console.log(typeof labelFunc !== 'function');
             if (typeof labelFunc !== 'function') {
-                throw new Error('invalid label type '+label);
+                throw new Error('invalid label type ' + label);
             } else {
                 var cell = new joint.shapes.fsa.Arrow({
                     source: { id: source.id },
@@ -432,7 +436,7 @@
                 graph.addCell(cell);
                 store.commit("setCurrentLink", cell);
                 store.commit("setCurrentLinkLabel", label);
-                doc[label]("ex:"+source.attributes.attrs.label.text, "ex:"+target.attributes.attrs.label.text);
+                doc[label]("ex:" + source.attributes.attrs.label.text, "ex:" + target.attributes.attrs.label.text);
                 return cell;
             }
         }
@@ -473,7 +477,7 @@
         //    return item;
         //}
 
-        function createElementNoPROV(type,x,y) {
+        function createElementNoPROV(type, x, y) {
             let item;
             switch (type) {
                 case 'entity':
@@ -517,9 +521,9 @@
         window.onload = function () {
             document.getElementById("graph").addEventListener("click", function () {
                 //console.log(event.clientX + "x" + event.clientY + "y");
-                if(menuVisible)toggleMenu("hide"); //For context menu
+                if (menuVisible) toggleMenu("hide"); //For context menu
                 let activeTool = store.state.activeTool;
-                let pointX = event.clientX-25;
+                let pointX = event.clientX - 25;
                 let pointY = event.clientY - 25;
                 if (activeTool != "none") {
                     createElementNoPROV(activeTool, pointX, pointY); //Create element with no PROV information
@@ -530,7 +534,7 @@
         }
 
         localStorage.setItem('graph', JSON.stringify(graph));
-    
+
     </script>
 </body>
 </html>

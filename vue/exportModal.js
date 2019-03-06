@@ -3,7 +3,7 @@
        <div id="export-modal" class="modal" hidden>
            <div class ="modal-content">
             <span class ="close close-input-content" @click='close()'>&times; </span>
-            <select class="export-options" name="scripts">
+            <select class="export-options" name="Export">
                 <option value="text/turtle">turtle</option>
                 <option value="text/provenance-notation">provenance</option>
                 <option value="application/provenance+xml">prov xml</option>

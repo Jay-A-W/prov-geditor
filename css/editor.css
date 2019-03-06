@@ -145,12 +145,18 @@
     margin: 5px;
 }
 
-.submit-elementModal{
+.submit{
     margin: 5px;
 }
 
-.submit-nsModal{
-    margin: 5px;
+.date-time-div {
+    text-align: center;
+    margin: 10px;
+}
+
+.date-time-picker {
+    display: none;
+    margin: 10px auto;
 }
 
 .html-element {
