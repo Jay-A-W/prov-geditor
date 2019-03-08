@@ -1,5 +1,4 @@
 Vue.use(Vuex);
-
 const store = new Vuex.Store({
     state: {
         activeTool: "none",
@@ -8,7 +7,6 @@ const store = new Vuex.Store({
         currentLink: {},
         currentElement: "undefined",
         prefixSet: [],
-
     },
     mutations: {
         setActiveTool(state, activeToolName) {
@@ -51,6 +49,14 @@ const store = new Vuex.Store({
 
         setCurrentElementLabel(state, label) {
             state.currentElement.model.attr('label/text', label);
+        },
+
+        setCurrentGraph(state, graph) {
+            state.currentGraph = graph;
+        },
+
+        setCurrentDoc(state, doc) {
+            state.currentDoc = doc;
         },
 
         addPrefixToSet(state, prefix) {

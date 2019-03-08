@@ -38,7 +38,7 @@
         <a href="#" onclick="show_doc_json(doc.scope);">exampleexample</a>
     </div>
     <!-- dependencies -->
-    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.8/dist/vue.js"></script>
     <script src="https://unpkg.com/vuex"></script>
     <script src="https://cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.auto.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.js"></script>
@@ -61,8 +61,8 @@
     <script src="vue/index.js"></script>
     <!-- code -->
     <script type="text/javascript">
-        //CURRENTLY LINKING WITH REVISION, QUOTATION, PRIMARYSOURCE DOES NOT WORK AS API IS MISSING FUNC!!!
 
+        //CURRENTLY LINKING WITH REVISION, QUOTATION, PRIMARYSOURCE DOES NOT WORK AS API IS MISSING FUNC!!!
         let doc = prov.document();
         store.commit("addPrefixToSet", 'xsd');
         store.commit("addPrefixToSet", 'prov');
@@ -105,15 +105,20 @@
                 }
             }),
         });
-
+  
         if (localStorage.getItem('graph')) { //HAS TO BE DONE AFTER INSTANTIATION OF PAPER AS PAPER IS WHAT REACTS TO UPDATE GRAPH VISUALLY
             graph.fromJSON(JSON.parse(localStorage.getItem('graph')));
         }
 
-        //if (localStorage.getItem('doc')) {  //LOCAL STORAGE OF DOC needs to be done
-        //    console.log(localStorage.getItem('doc'));
-        //    doc = localStorage.getItem('doc');
+        //if (localStorage.getItem('doc')) {
+        //    //let storeDoc = JSON.parse(localStorage.getItem('doc'));
+        //    let storeDoc = Object.assign(doc, JSON.parse(localStorage.getItem('doc')));
+        //    let storeScope = Object.assign(doc.scope, JSON.parse(localStorage.getItem('doc')).scope);
+        //    //console.log(doc);
+        //    storeDoc.scope = storeScope;
+        //    console.log(prov);
         //}
+        console.log(doc);
         const menu = document.querySelector(".menu");
         let menuVisible = false;
 
@@ -132,6 +137,7 @@
             store.commit("setCurrentLinkLabel", label);
             doc[label]("ex:" + store.state.currentSource.attributes.attrs.label.text, "ex:" + store.state.currentTarget.attributes.attrs.label.text);
             localStorage.setItem('graph', JSON.stringify(graph));
+            localStorage.setItem('doc', JSON.stringify(prov.document()));
             for (let child of $(".menu-options").children()) {
                 child.style.display = "none";
             }
@@ -393,6 +399,7 @@
             deleteRelationInDoc(link.model);
             link.model.remove();
             localStorage.setItem('graph', JSON.stringify(graph));
+            localStorage.setItem('doc', JSON.stringify(prov.document()));
         })
 
         paper.on('delete:button:pointerdown', function (elementView, evt) {
@@ -416,6 +423,7 @@
             doc.scope.statements = filtered;
             model.remove();
             localStorage.setItem('graph', JSON.stringify(graph));
+            localStorage.setItem('doc', JSON.stringify(prov.document()));
         });
 
         function link(source, target, label, vertices) {
@@ -505,6 +513,7 @@
             item.addTo(graph);
             item.attr('body/magnet', 'passive');
             localStorage.setItem('graph', JSON.stringify(graph));
+            localStorage.setItem('doc', JSON.stringify(prov.document()));
             return item;
         }
 
@@ -532,8 +541,8 @@
                 event.stopPropagation();
             });
         }
-
         localStorage.setItem('graph', JSON.stringify(graph));
+        localStorage.setItem('doc', JSON.stringify(prov.document()));
 
     </script>
 </body>
