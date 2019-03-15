@@ -95,7 +95,9 @@
             }
             store.commit("setCurrentElementLabel", newName);
             localStorage.setItem('graph', JSON.stringify(graph));
-            localStorage.setItem('doc', JSON.stringify(prov.document()));
+            localStorage.setItem('doc', JSON.stringify(doc));
+            console.log(doc);
+            console.log(JSON.parse(JSON.stringify(doc)));
             //this.model.remove();
         },
         //addDateTimePicker() {

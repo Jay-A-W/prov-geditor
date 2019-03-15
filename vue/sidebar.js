@@ -6,6 +6,7 @@ Vue.component('sidebar', {
             <button id="agentTool"><i class ="fa fa-fw fa-caret-up"></i></button>
             <button id="prefixTool" @click="showNSModal()">ex</button>
             <button id="ajaxTool" @click="showExportModal()">ajax</button>
+            <button id="attrTool">attr</button>
             <button id="clearTool" @click="clearGraph()">clear</button>
 
         </div>
@@ -26,6 +27,7 @@ Vue.component('sidebar', {
         addClickListener(className) {
             document.getElementById(className).addEventListener("click", function () {
                 //.activeTool = className;
+                console.log(className);
                 store.commit("setActiveTool", className);
                 //console.log(store.state.activeTool);
             });
@@ -45,6 +47,7 @@ Vue.component('sidebar', {
         this.addClickListener("entityTool");
         this.addClickListener("activityTool");
         this.addClickListener("agentTool");
+        this.addClickListener("attrTool");
     }
 })
 

@@ -21,7 +21,7 @@ const store = new Vuex.Store({
                     state.activeTool = "agent";
                     break;
                 default:
-                    state.activeTool = "none";
+                    state.activeTool = activeToolName;
             }
         },
 

@@ -13,6 +13,7 @@
         <sidebar></sidebar>
         <namespace-modal></namespace-modal>
         <element-modal></element-modal>
+        <attr-modal></attr-modal>
         <export-modal></export-modal>
         <link-modal></link-modal>
         <div class="menu">
@@ -56,6 +57,7 @@
     <script src="vue/sidebar.js"></script>
     <script src="vue/nameSpaceModal.js"></script>
     <script src="vue/elementModal.js"></script>
+    <script src="vue/attrModal.js"></script>
     <script src="vue/linkModal.js"></script>
     <script src="vue/exportModal.js"></script>
     <script src="vue/index.js"></script>
@@ -88,12 +90,14 @@
                 pointerdblclick: function (evt, x, y) {
                     store.commit("setCurrentElement", this);
                     $("#elementModal").show();
-                    //let input = prompt("Enter element name");
-                    //let type = this.model.attributes.type.replace("custom.", "");
-                    //let currentName = this.model.attributes.attrs.label.text;
-                    //editPROVElement(type, currentName, input);
-                    //this.model.attr('label/text', input);
-                    //this.model.remove();
+                },
+                pointerclick: function (evt, x, y) {
+                    if (store.state.activeTool == "attrTool") {
+                        store.commit("setCurrentElement", this);
+                        store.commit("setCurrentLink", "undefined");
+                        $("#attrModal").show();
+                        store.commit('setActiveTool', 'none');
+                    }
                 }
             }),
             linkView: joint.dia.LinkView.extend({
@@ -102,22 +106,32 @@
                         store.commit("setCurrentLink", this);
                         $("#linkModal").show();
                     }
+                },
+                pointerclick: function (evt, x, y) {
+                    if (store.state.activeTool == "attrTool") {
+                        store.commit("setCurrentElement", "undefined");
+                        store.commit("setCurrentLink", this);
+                        $("#attrModal").show();
+                        store.commit('setActiveTool', 'none');
+                    }
                 }
             }),
         });
-  
+
         if (localStorage.getItem('graph')) { //HAS TO BE DONE AFTER INSTANTIATION OF PAPER AS PAPER IS WHAT REACTS TO UPDATE GRAPH VISUALLY
             graph.fromJSON(JSON.parse(localStorage.getItem('graph')));
         }
 
-        //if (localStorage.getItem('doc')) {
-        //    //let storeDoc = JSON.parse(localStorage.getItem('doc'));
-        //    let storeDoc = Object.assign(doc, JSON.parse(localStorage.getItem('doc')));
-        //    let storeScope = Object.assign(doc.scope, JSON.parse(localStorage.getItem('doc')).scope);
-        //    //console.log(doc);
-        //    storeDoc.scope = storeScope;
-        //    console.log(prov);
-        //}
+        if (localStorage.getItem('doc')) {
+            //let storeDoc = JSON.parse(localStorage.getItem('doc'));
+            //let storeDoc = Object.assign(doc, JSON.parse(localStorage.getItem('doc')));
+            //let storeScope = Object.assign(doc.scope, JSON.parse(localStorage.getItem('doc')).scope);
+            //let storeNameSpace = Object.assign(doc.scope.namespaces, JSON.parse(localStorage.getItem('doc')).scope.namespaces);
+            //let storeStatements = Object.assign(doc.scope.statements, JSON.parse(localStorage.getItem('doc')).scope.statements);
+            doc.parent = JSON.parse(localStorage.getItem('doc')).parent;
+            doc.scope.namespaces = JSON.parse(localStorage.getItem('doc')).scope.namespaces;
+            //doc.scope.statements = JSON.parse(localStorage.getItem('doc')).scope.statements;
+        }
         console.log(doc);
         const menu = document.querySelector(".menu");
         let menuVisible = false;
@@ -137,7 +151,7 @@
             store.commit("setCurrentLinkLabel", label);
             doc[label]("ex:" + store.state.currentSource.attributes.attrs.label.text, "ex:" + store.state.currentTarget.attributes.attrs.label.text);
             localStorage.setItem('graph', JSON.stringify(graph));
-            localStorage.setItem('doc', JSON.stringify(prov.document()));
+            localStorage.setItem('doc', JSON.stringify(doc));
             for (let child of $(".menu-options").children()) {
                 child.style.display = "none";
             }
@@ -235,23 +249,6 @@
             }
         })
 
-        function filterOutLink(link, qualifiedInfluence) {
-            let source = getElementById(link.attributes.source.id);
-            let target = getElementById(link.attributes.target.id);
-            let sourceType = source.attributes.type.replace("custom.", "");
-            let targetType = target.attributes.type.replace("custom.", "");
-            let filtered = doc.scope.statements.filter(function (link) {
-                if (link.constructor.name == qualifiedInfluence) {
-                    if ((link.properties.hasOwnProperty(sourceType.toLowerCase())) && (link.properties.hasOwnProperty(targetType.toLowerCase()))) {
-                        if ((link[sourceType.toLowerCase()].localPart == source.attributes.attrs.label.text) && (link[targetType.toLowerCase()].localPart == target.attributes.attrs.label.text)) {
-                            return false;
-                        }
-                    }
-                }
-                return true;
-            });
-            return filtered;
-        }
         function deleteRelationInDoc(link) {
             let relType = link.attributes.attrs.relType;
             let qualifiedInfluence;
@@ -399,7 +396,7 @@
             deleteRelationInDoc(link.model);
             link.model.remove();
             localStorage.setItem('graph', JSON.stringify(graph));
-            localStorage.setItem('doc', JSON.stringify(prov.document()));
+            localStorage.setItem('doc', JSON.stringify(doc));
         })
 
         paper.on('delete:button:pointerdown', function (elementView, evt) {
@@ -423,7 +420,7 @@
             doc.scope.statements = filtered;
             model.remove();
             localStorage.setItem('graph', JSON.stringify(graph));
-            localStorage.setItem('doc', JSON.stringify(prov.document()));
+            localStorage.setItem('doc', JSON.stringify(doc));
         });
 
         function link(source, target, label, vertices) {
@@ -448,7 +445,76 @@
                 return cell;
             }
         }
+        var ex = doc.addNamespace("ex", "http://www.example.org#");
+        var dcterms = doc.addNamespace("dcterms", "http://purl.org/dc/terms/");
+        var foaf = doc.addNamespace("foaf", "http://xmlns.com/foaf/0.1/");
 
+        // Entities
+        doc.entity("ex:article", ["dcterms:title", "Crime rises in cities"]);
+        doc.entity("ex:dataSet1");
+        doc.entity("ex:regionList");
+        doc.entity("ex:compositionList");
+        doc.entity("ex:chart1");
+
+        // Activities
+        doc.activity("ex:compile1");
+        doc.activity("ex:compose1");
+        doc.activity("ex:illustrate1");
+
+        // Usage and Generation
+        doc.used("ex:compose1", "ex:dataset1");
+        doc.used("ex:compose1", "ex:regionList");
+        doc.wasGeneratedBy("ex:composition1", "ex:compose1");
+        doc.used("ex:illustrate1", "ex:composition1");
+        doc.wasGeneratedBy("ex:chart1", "ex:illustrate1");
+
+        // Agents and Responsibility
+        doc.wasAssociatedWith("ex:compose1", "ex:derek");
+        doc.wasAssociatedWith("ex:illustrate1", "ex:derek");
+        doc.agent("ex:derek",
+            ["prov:type", prov.ns.Person, "foaf:givenName", "Derek",
+                "foaf:mbox", "<mailto:derek@example.org>"]);
+
+        // Roles
+        doc.agent("ex:chartgen",
+            ["prov:type", prov.ns.Organization,
+                "foaf:name", "Chart Generators Inc"]);
+        doc.actedOnBehalfOf("ex:derek", "ex:chartgen");
+
+        doc.wasAttributedTo("ex:chart1", "ex:derek");
+
+        doc.used("ex:compose1", "ex:dataset1", ["prov:role", ex.qn("dataToCompose")]);
+        doc.used("ex:compose1", "ex:regionList", ["prov:role", ex.qn("regionsToAggregateBy")]);
+        doc.wasAssociatedWith("ex:compose1", "ex:derek", ["prov:role", ex.qn("analyst")]);
+        doc.wasGeneratedBy("ex:composition1", "ex:compose1", ["prov:role", ex.qn("composedData")]);
+
+        // Derivation and Revision
+        doc.entity("ex:dataSet2");
+        doc.wasDerivedFrom("ex:dataSet2", "ex:dataset1", ["prov:type", prov.ns.Revision]);
+        doc.wasDerivedFrom("ex:chart2", "ex:dataSet2");
+        doc.entity("ex:chart2");
+        doc.wasDerivedFrom("ex:chart2", "ex:chart1", ["prov:type", prov.ns.Revision]);
+
+        // Plans
+        doc.activity("ex:correct1");
+        doc.agent("ex:edith", ["prov:type", prov.ns.Person]);
+        doc.entity("ex:instructions");
+        doc.wasAssociatedWith("ex:correct1", "ex:edith", "ex:instructions");
+        doc.wasGeneratedBy("ex:dataSet2", "ex:correct1");
+
+        // Time
+        doc.wasGeneratedBy("ex:chart1", "ex:compile1", "2012-03-02T10:30:00");
+        doc.wasGeneratedBy("ex:chart2", "ex:compile2", "2012-04-01T15:21:00");
+        doc.activity("ex:correct1", "2012-03-31T09:21:00", "2012-04-01T15:21:00");
+
+        // Alternate Entities and Specialization
+        doc.entity("ex:quoteInBlogEntry-20130326");
+        doc.wasDerivedFrom("ex:quoteInBlogEntry-20130326", "ex:article", ["prov:type", prov.ns.Quotation]);
+
+        doc.entity("ex:articleV1");
+        doc.specializationOf("ex:articleV1", "ex:article");
+        doc.specializationOf("ex:articleV2", "ex:article");
+        doc.alternateOf("ex:articleV2", "ex:articleV1");
         //function createElement(type,name,prefix,x,y) {
         //    let item;
         //    switch (type) {
@@ -513,7 +579,7 @@
             item.addTo(graph);
             item.attr('body/magnet', 'passive');
             localStorage.setItem('graph', JSON.stringify(graph));
-            localStorage.setItem('doc', JSON.stringify(prov.document()));
+            localStorage.setItem('doc', JSON.stringify(doc));
             return item;
         }
 
@@ -534,15 +600,15 @@
                 let activeTool = store.state.activeTool;
                 let pointX = event.clientX - 25;
                 let pointY = event.clientY - 25;
-                if (activeTool != "none") {
+                if ((activeTool == "entity")|| (activeTool == "activity") || (activeTool == "agent")) {
                     createElementNoPROV(activeTool, pointX, pointY); //Create element with no PROV information
+                    store.commit('setActiveTool', 'none');
                 }
-                store.commit('setActiveTool', 'none');
                 event.stopPropagation();
             });
         }
         localStorage.setItem('graph', JSON.stringify(graph));
-        localStorage.setItem('doc', JSON.stringify(prov.document()));
+        localStorage.setItem('doc', JSON.stringify(doc));
 
     </script>
 </body>
