@@ -50,7 +50,6 @@ Vue.component('sidebar', {
             saveFile.doc = {};
             saveFile.doc.namespaces = doc.scope.namespaces;
             saveFile.doc.statements = localStorage.getItem("statements");
-            console.log(saveFile);
             $(".save-data-area").val(JSON.stringify(saveFile));
         },
         loadDoc() {

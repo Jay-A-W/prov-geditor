@@ -1,20 +1,4 @@
-﻿function setPrefixInDoc() {
-
-}
-
-//function QualifiedName(prefix, localPart, namespaceURI) {
-//    console.log(prefix, localPart, namespaceURI);
-//    this.prefix = prefix;
-//    this.localPart = localPart;
-//    this.namespaceURI = namespaceURI;
-//    if (namespaceURI[namespaceURI.length - 1] == "/") {
-//        this.uri = namespaceURI + localPart;
-//    } else {
-//        this.uri = namespaceURI + "/" + localPart;
-//    }
-//}
-
-function URI(uri) {
+﻿function URI(uri) {
     this.uri = uri;
 }
 URI.prototype.getURI = function () {
@@ -227,7 +211,7 @@ function filterForLink(link, relType) {
         });
         return filtered;
     }
-    console.log(relType);
+
     switch (relType) {
         case "wasGeneratedBy":
             qualifiedInfluence = "Generation";
@@ -349,7 +333,6 @@ function filterOutLink(link, qualifiedInfluence) {
     let target = getElementById(link.attributes.target.id);
     let sourceType = source.attributes.type.replace("custom.", "");
     let targetType = target.attributes.type.replace("custom.", "");
-    console.log(sourceType, targetType);
     let filtered = doc.scope.statements.filter(function (link) {
         if (link.constructor.name == qualifiedInfluence) {
             if ((link.properties.hasOwnProperty(sourceType.toLowerCase())) && (link.properties.hasOwnProperty(targetType.toLowerCase()))) {
@@ -503,7 +486,6 @@ function localStoreSaveStatements() {
             statement.properties.source = source;
             statement.properties.target = target;
         }
-        console.log(attributes);
         statement.attributes = attributes;
         statements.push(statement);
     }
