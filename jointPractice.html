@@ -16,6 +16,8 @@
         <attr-modal></attr-modal>
         <export-modal></export-modal>
         <link-modal></link-modal>
+        <load-modal></load-modal>
+        <save-modal></save-modal>
         <div class="menu">
             <ul class="menu-options">
                 <li class="menu-option option-wasGeneratedBy" onclick="addRelation('wasGeneratedBy')" hidden>wasGeneratedBy</li>
@@ -60,11 +62,12 @@
     <script src="vue/attrModal.js"></script>
     <script src="vue/linkModal.js"></script>
     <script src="vue/exportModal.js"></script>
+    <script src="vue/loadModal.js"></script>
+    <script src="vue/saveModal.js"></script>
     <script src="vue/index.js"></script>
     <!-- code -->
     <script type="text/javascript">
 
-        //CURRENTLY LINKING WITH REVISION, QUOTATION, PRIMARYSOURCE DOES NOT WORK AS API IS MISSING FUNC!!!
         let doc = prov.document();
         store.commit("addPrefixToSet", 'xsd');
         store.commit("addPrefixToSet", 'prov');
@@ -76,12 +79,11 @@
         let json = {};
         let graph = new joint.dia.Graph;
 
-        //localStorage.clear();
         var paper = new joint.dia.Paper({
             el: document.getElementById('graph'),
             model: graph,
-            width: 2000,
-            height: 2000,
+            width: document.getElementById('graph').width,
+            height: document.getElementById('graph').height,
             gridSize: 1,
             linkPinning: false,
             defaultLink: new joint.shapes.custom.fsa.Arrow({
@@ -131,137 +133,10 @@
 
         if (localStorage.getItem("statements")) {
             console.log(JSON.parse(localStorage.getItem("statements")));
-            let localStatements = JSON.parse(localStorage.getItem("statements"));
-            doc.scope.statements = [];
+            loadStatements(JSON.parse(localStorage.getItem("statements")));
 
-            function addAttr(objectType, localStatement) {
-                let provElement = doc.scope.statements.filter(elementType => elementType.constructor.name == objectType).filter(element => element.identifier.localPart == localStatement.identifier.jsonProvData.localPart);
-                for (let j = 0; j < localStatement.attributes.length; j++) {
-                    let attribute = localStatement.attributes[j];
-                    let qnName = new QualifiedName(attribute[0].jsonProvData.prefix, attribute[0].jsonProvData.localPart, attribute[0].jsonProvData.namespaceURI);
-                    if (attribute[0].jsonProvData.prefix == "prov") {
-                        let qnValue = new QualifiedName(attribute[1].jsonProvData.prefix, attribute[1].jsonProvData.localPart, attribute[1].jsonProvData.namespaceURI);
-                        provElement[0].attributes.push([qnName, qnValue]);
-                    } else {
-                        provElement[0].attributes.push([qnName, attribute[1].jsonProvData]);
-                    }
-                }
-                if ((objectType == "Activity") && (localStatement.hasOwnProperty("startTime")) && (localStatement.hasOwnProperty("endTime"))) {
-                    provElement[0].startTime = getValidDate(localStatement.startTime);
-                    provElement[0].endTime = getValidDate(localStatement.endTime);
-                }
-            }
+        }
 
-            function filterForLinkWithStatement(objectType, localStatement) {
-                let source = localStatement.properties.source;
-                let target = localStatement.properties.target;
-                let provLink = doc.scope.statements.filter(linkType => linkType.constructor.name == objectType).filter(function (link) {
-                    if ((link.properties.hasOwnProperty(source.objectType.toLowerCase())) && (link.properties.hasOwnProperty(target.objectType.toLowerCase()))) {
-                        if ((link.properties[source.objectType.toLowerCase()].localPart == source.localPart) && (link.properties[target.objectType.toLowerCase()].localPart == target.localPart)
-                            && (link.properties[source.objectType.toLowerCase()].prefix == source.prefix) && (link.properties[target.objectType.toLowerCase()].prefix == target.prefix)) {
-                            return true;
-                        }
-                    }
-                    return false;
-                });
-                return provLink;
-            }
-
-            function addAttrToLink(objectType, localStatement) {
-                let provLink = filterForLinkWithStatement(objectType, localStatement);
-                for (let j = 0; j < localStatement.attributes.length; j++) {
-                    let attribute = localStatement.attributes[j];
-                    let qnName = new QualifiedName(attribute[0].jsonProvData.prefix, attribute[0].jsonProvData.localPart, attribute[0].jsonProvData.namespaceURI);
-                    if (attribute[0].jsonProvData.prefix == "prov") {
-                        let qnValue = new QualifiedName(attribute[1].jsonProvData.prefix, attribute[1].jsonProvData.localPart, attribute[1].jsonProvData.namespaceURI);
-                        provLink[0].attributes.push([qnName, qnValue]);
-                    } else {
-                        provLink[0].attributes.push([qnName, attribute[1].jsonProvData]);
-                    }
-                }
-                if ((objectType == "Generation") && (localStatement.properties.hasOwnProperty("time"))) {
-                    provLink[0].properties.time = getValidDate(localStatement.properties.time);
-                }
-            }
-
-            for (let i = 0; i < localStatements.length; i++) {
-                let objectType = localStatements[i].objectType;
-                if (localStatements[i].hasOwnProperty("properties")){
-                    source = localStatements[i].properties.source;
-                    target = localStatements[i].properties.target;
-                }
-                switch (objectType) {
-                    case 'Entity':
-                        doc.entity(localStatements[i].identifier.jsonProvData.prefix + ":" + localStatements[i].identifier.jsonProvData.localPart);
-                        addAttr("Entity", localStatements[i]);
-                        break;
-                    case 'Activity':
-                        doc.activity(localStatements[i].identifier.jsonProvData.prefix + ":" + localStatements[i].identifier.jsonProvData.localPart);
-                        addAttr("Activity", localStatements[i]);
-                        break;
-                    case 'Agent':
-                        doc.agent(localStatements[i].identifier.jsonProvData.prefix + ":" + localStatements[i].identifier.jsonProvData.localPart);
-                        addAttr("Agent", localStatements[i]);
-                        break;
-                    case "Generation":
-                        doc.wasGeneratedBy(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
-                        addAttrToLink("Generation", localStatements[i]);
-                        break;
-                    case "Derivation":
-                        doc.wasDerivedFrom(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
-                        addAttrToLink("Derivation", localStatements[i]);
-                        break;
-                    case "Attribution":
-                        doc.wasAttributedTo(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
-                        addAttrToLink("Attribution", localStatements[i]);
-                        break;
-                    case "Usage":
-                        doc.used(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
-                        addAttrToLink("Usage", localStatements[i]);
-                        break;
-                    case "Communication":
-                        doc.wasInformedBy(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
-                        addAttrToLink("Communication", localStatements[i]);
-                        break;
-                    case "Association":
-                        doc.wasAssociatedWith(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
-                        addAttrToLink("Association", localStatements[i]);
-                        break;
-                    case "Delegation":
-                        doc.actedOnBehalfOf(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
-                        addAttrToLink("Delegation", localStatements[i]);
-                        break;
-                    case "Influence":
-                        doc.wasInfluencedBy(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
-                        addAttrToLink("Influence", localStatements[i]);
-                        break;
-                    case "PrimarySource":
-                        //Cannot do PrimarySource relation with current Prov API         
-                        break;
-                    case "Quotation":
-                        //Cannot do Quotation relation with current Prov API 
-                        break;
-                    case "Revision":
-                        //Cannot do Revision relation with current Prov API 
-                        break;
-                    case "Invalidation":
-                        doc.wasInvalidatedBy(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
-                        addAttrToLink("Invalidation", localStatements[i]);
-                        break;
-                    case "Start":
-                        doc.wasStartedBy(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
-                        addAttrToLink("Start", localStatements[i]);
-                        break;
-                    case "End":
-                        doc.wasEndedBy(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
-                        addAttrToLink("End", localStatements[i]);
-                        break;
-                }
-            }
-
-        } 
-
-        //console.log(doc);
         const menu = document.querySelector(".menu");
         let menuVisible = false;
 
@@ -294,7 +169,7 @@
             let sourceType = source.attributes.type;
             let targetType = target.attributes.type;
 
-            //let entity2Entity = ['wasDerivedFrom', 'wasInfluencedBy', 'hadPrimarySource', 'wasQuotedFrom', 'wasRevisionOf']; wasPrimary, Quoted and Revision has not been incorporate into the PROV api yet
+            //let entity2Entity = ['wasDerivedFrom', 'wasInfluencedBy', 'hadPrimarySource', 'wasQuotedFrom', 'wasRevisionOf']; hasPrimary, Quoted and Revision has not been incorporate into the PROV api yet
             let entity2Entity = ['wasDerivedFrom', 'wasInfluencedBy'];
             let entity2Activity = ['wasGeneratedBy', 'wasInfluencedBy', 'wasInvalidatedBy'];
             let entity2Agent = ['wasAttributedTo', 'wasInfluencedBy'];
@@ -348,14 +223,6 @@
             }
         };
 
-        function getElementById(id) {
-            for (let element of graph.getElements()) {
-                if (element.id === id) {
-                    return element;
-                }
-            }
-        };
-
         //On connection
         graph.on('change:source change:target', function (link) {
             let source = link.get('source');
@@ -374,7 +241,6 @@
                 store.commit("setCurrentSource", getElementById(source.id));
                 store.commit("setCurrentTarget", getElementById(target.id));
                 store.commit("setCurrentLink", link);
-                //console.log(graph);
                 return false;
             }
         })
@@ -518,17 +384,12 @@
                     break;
             }
             localStoreSaveStatements();
-            //console.log(link);
-            //console.log(doc.scope.statements);
         };
 
-        //graph.on('remove', function(cell, cellView, evt) {
-        //    if (cell.isLink()) {
-        //    }
-        //})
-
         paper.on('tool:remove', function (link, linkView, evt) {
-            deleteRelationInDoc(link.model);
+            if (link.model.attributes.attrs.hasOwnProperty("relType")) { //To check if a link actually has a relation so that an error doesn't occur
+                deleteRelationInDoc(link.model);
+            }
             link.model.remove();
             localStorage.setItem('graph', JSON.stringify(graph));
             localStorage.setItem('doc', JSON.stringify(doc));
@@ -582,9 +443,6 @@
                 return cell;
             }
         }
-        var ex = doc.addNamespace("ex", "http://www.example.org#");
-        var dcterms = doc.addNamespace("dcterms", "http://purl.org/dc/terms/");
-        var foaf = doc.addNamespace("foaf", "http://xmlns.com/foaf/0.1/");
 
         // Entities
         //doc.entity("ex:article", ["dcterms:title", "Crime rises in cities"]);
@@ -721,24 +579,13 @@
             return item;
         }
 
-        //let activity = createElement('activity','writing','ex', 400, 500);
-        //let entity = createElement('entity', 'story', 'ex', 400, 230);
-        //let agent = createElement('agent', 'writer', 'ex', 100, 330);
-
-        //var used = link(activity, entity, 'used', [{ x: 400, y: 400 }]);
-        //var wasGeneratedBy = link(entity, activity, 'wasGeneratedBy', [{ x: 500, y: 400 }]);
-        //var wasDerivedFrom = link(entity, entity, 'wasDerivedFrom', [{ x: 400, y: 150 }, { x: 500, y: 150 }]);
-        //var wasAttributedTo = link(entity, agent, 'wasAttributedTo');
-        //var wasAssociatedWith = link(activity, agent, 'wasAssociatedWith');
-
         window.onload = function () {
             document.getElementById("graph").addEventListener("click", function () {
-                //console.log(event.clientX + "x" + event.clientY + "y");
                 if (menuVisible) toggleMenu("hide"); //For context menu
                 let activeTool = store.state.activeTool;
-                let pointX = event.clientX - 25;
-                let pointY = event.clientY - 25;
-                if ((activeTool == "entity")|| (activeTool == "activity") || (activeTool == "agent")) {
+                let pointX = event.clientX;
+                let pointY = event.clientY;
+                if ((activeTool == "entity") || (activeTool == "activity") || (activeTool == "agent")) {
                     createElementNoPROV(activeTool, pointX, pointY); //Create element with no PROV information
                     store.commit('setActiveTool', 'none');
                 }

@@ -1,23 +1,19 @@
-/*.toolbar {
-    position: absolute;
-    overflow: hidden;
-    padding: 2px;
-    left: 0px;
-    top: 26px;
-    width: 24px;
-    bottom: 0px;
-}*/
 
+html, body{
+    min-height: 100% !important;
+    height: 100%;
+    width: 100%;
+    margin: 0%;
+}
 
-/*.canvas {
-    position: absolute;
-    overflow: hidden;
-    left: 24px;
-    top: 26px;
-    right: 0px;
-    bottom: 0px;
-    background: url("js/lib/images/grid.gif");
-}*/
+#prov-editor {
+    height: 100%;
+    width: 100%;
+}
+#graph {
+    height:100%;
+    width:100%;
+}
 
 /* Style the sidebar - fixed full height */
 .sidebar {

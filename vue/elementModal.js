@@ -10,15 +10,6 @@
                    </select>
                    </br>
                    <input class="input-elementName modal-input" type="text" name="Element Name" value="Enter Element Name..." onfocus="this.value=''"></input></br>
-                   <!--<transition v-on:enter="this.addDateTimePicker">-->
-                       <div v-if="this.checkIfActivity()" class="date-time-div">
-                            <div> Choose Activity Date (Optional)</div>
-                            </br>
-                            <button class="show-date-time-picker" @click="showDateTimePicker()">Show</button>
-                            <div class="date-time-picker">Start Date: <input class="start-time" type="datetime-local" name="Date Time Picker"></div>
-                            <div class="date-time-picker">End Date: <input class="end-time" type="datetime-local" name="Date Time Picker"></div>
-                       </div>
-                   <!--</transition>-->
                    <button class ="submit element-modal" @click='submitElement()'>Submit</button>
                </div>
                <div class ="warning-content" hidden>
@@ -102,3 +93,12 @@
     created() {
     }
 })
+//<!--<transition v-on:enter="this.addDateTimePicker">-->
+//                  <div v-if="this.checkIfActivity()" class="date-time-div">
+//                       <div> Choose Activity Date (Optional)</div>
+//                       </br>
+//                       <button class="show-date-time-picker" @click="showDateTimePicker()">Show</button>
+//                       <div class="date-time-picker">Start Date: <input class="start-time" type="datetime-local" name="Date Time Picker"></div>
+//                       <div class="date-time-picker">End Date: <input class="end-time" type="datetime-local" name="Date Time Picker"></div>
+//                  </div>
+//              <!--</transition>-->

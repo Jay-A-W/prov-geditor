@@ -200,6 +200,14 @@ function getValidDate(dt) {
     return ret;
 }
 
+function getElementById(id) {
+    for (let element of graph.getElements()) {
+        if (element.id === id) {
+            return element;
+        }
+    }
+};
+
 function filterForLink(link, relType) {
     let source = getElementById(link.attributes.source.id);
     let target = getElementById(link.attributes.target.id);
@@ -500,7 +508,6 @@ function localStoreSaveStatements() {
         statements.push(statement);
     }
     localStorage.setItem("statements", JSON.stringify(statements));
-    console.log(statements);
     return statements;
 }
 
@@ -547,4 +554,134 @@ function editPROVElement(type, currentName, newName, prefix, startTime, endTime)
                 throw new Error('Invalid item type');
         }
     }
-};
+}
+
+function loadStatements(localStatementData) {
+    let localStatements = localStatementData;
+    doc.scope.statements = [];
+
+    function addAttr(objectType, localStatement) {
+        let provElement = doc.scope.statements.filter(elementType => elementType.constructor.name == objectType).filter(element => element.identifier.localPart == localStatement.identifier.jsonProvData.localPart);
+        for (let j = 0; j < localStatement.attributes.length; j++) {
+            let attribute = localStatement.attributes[j];
+            let qnName = new QualifiedName(attribute[0].jsonProvData.prefix, attribute[0].jsonProvData.localPart, attribute[0].jsonProvData.namespaceURI);
+            if (attribute[0].jsonProvData.prefix == "prov") {
+                let qnValue = new QualifiedName(attribute[1].jsonProvData.prefix, attribute[1].jsonProvData.localPart, attribute[1].jsonProvData.namespaceURI);
+                provElement[0].attributes.push([qnName, qnValue]);
+            } else {
+                provElement[0].attributes.push([qnName, attribute[1].jsonProvData]);
+            }
+        }
+        if ((objectType == "Activity") && (localStatement.hasOwnProperty("startTime")) && (localStatement.hasOwnProperty("endTime"))) {
+            provElement[0].startTime = getValidDate(localStatement.startTime);
+            provElement[0].endTime = getValidDate(localStatement.endTime);
+        }
+    }
+
+    function filterForLinkWithStatement(objectType, localStatement) {
+        let source = localStatement.properties.source;
+        let target = localStatement.properties.target;
+        let provLink = doc.scope.statements.filter(linkType => linkType.constructor.name == objectType).filter(function (link) {
+            if ((link.properties.hasOwnProperty(source.objectType.toLowerCase())) && (link.properties.hasOwnProperty(target.objectType.toLowerCase()))) {
+                if ((link.properties[source.objectType.toLowerCase()].localPart == source.localPart) && (link.properties[target.objectType.toLowerCase()].localPart == target.localPart)
+                    && (link.properties[source.objectType.toLowerCase()].prefix == source.prefix) && (link.properties[target.objectType.toLowerCase()].prefix == target.prefix)) {
+                    return true;
+                }
+            }
+            return false;
+        });
+        return provLink;
+    }
+
+    function addAttrToLink(objectType, localStatement) {
+        let provLink = filterForLinkWithStatement(objectType, localStatement);
+        for (let j = 0; j < localStatement.attributes.length; j++) {
+            let attribute = localStatement.attributes[j];
+            let qnName = new QualifiedName(attribute[0].jsonProvData.prefix, attribute[0].jsonProvData.localPart, attribute[0].jsonProvData.namespaceURI);
+            if (attribute[0].jsonProvData.prefix == "prov") {
+                let qnValue = new QualifiedName(attribute[1].jsonProvData.prefix, attribute[1].jsonProvData.localPart, attribute[1].jsonProvData.namespaceURI);
+                provLink[0].attributes.push([qnName, qnValue]);
+            } else {
+                provLink[0].attributes.push([qnName, attribute[1].jsonProvData]);
+            }
+        }
+        if ((objectType == "Generation") && (localStatement.properties.hasOwnProperty("time"))) {
+            provLink[0].properties.time = getValidDate(localStatement.properties.time);
+        }
+    }
+
+    for (let i = 0; i < localStatements.length; i++) {
+        let objectType = localStatements[i].objectType;
+        if (localStatements[i].hasOwnProperty("properties")) {
+            source = localStatements[i].properties.source;
+            target = localStatements[i].properties.target;
+        }
+        switch (objectType) {
+            case 'Entity':
+                doc.entity(localStatements[i].identifier.jsonProvData.prefix + ":" + localStatements[i].identifier.jsonProvData.localPart);
+                addAttr("Entity", localStatements[i]);
+                break;
+            case 'Activity':
+                doc.activity(localStatements[i].identifier.jsonProvData.prefix + ":" + localStatements[i].identifier.jsonProvData.localPart);
+                addAttr("Activity", localStatements[i]);
+                break;
+            case 'Agent':
+                doc.agent(localStatements[i].identifier.jsonProvData.prefix + ":" + localStatements[i].identifier.jsonProvData.localPart);
+                addAttr("Agent", localStatements[i]);
+                break;
+            case "Generation":
+                doc.wasGeneratedBy(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
+                addAttrToLink("Generation", localStatements[i]);
+                break;
+            case "Derivation":
+                doc.wasDerivedFrom(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
+                addAttrToLink("Derivation", localStatements[i]);
+                break;
+            case "Attribution":
+                doc.wasAttributedTo(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
+                addAttrToLink("Attribution", localStatements[i]);
+                break;
+            case "Usage":
+                doc.used(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
+                addAttrToLink("Usage", localStatements[i]);
+                break;
+            case "Communication":
+                doc.wasInformedBy(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
+                addAttrToLink("Communication", localStatements[i]);
+                break;
+            case "Association":
+                doc.wasAssociatedWith(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
+                addAttrToLink("Association", localStatements[i]);
+                break;
+            case "Delegation":
+                doc.actedOnBehalfOf(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
+                addAttrToLink("Delegation", localStatements[i]);
+                break;
+            case "Influence":
+                doc.wasInfluencedBy(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
+                addAttrToLink("Influence", localStatements[i]);
+                break;
+            case "PrimarySource":
+                //Cannot do PrimarySource relation with current Prov API
+                break;
+            case "Quotation":
+                //Cannot do Quotation relation with current Prov API
+                break;
+            case "Revision":
+                //Cannot do Revision relation with current Prov API
+                break;
+            case "Invalidation":
+                doc.wasInvalidatedBy(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
+                addAttrToLink("Invalidation", localStatements[i]);
+                break;
+            case "Start":
+                doc.wasStartedBy(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
+                addAttrToLink("Start", localStatements[i]);
+                break;
+            case "End":
+                doc.wasEndedBy(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
+                addAttrToLink("End", localStatements[i]);
+                break;
+        }
+    }
+}
