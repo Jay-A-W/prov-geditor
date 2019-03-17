@@ -15,7 +15,10 @@ html, body{
     width:100%;
 }
 
-/* Style the sidebar - fixed full height */
+.sidebar * {
+    margin: 0 auto;
+}
+
 .sidebar {
   height: 100%;
   width: 60px;
@@ -28,9 +31,8 @@ html, body{
   padding-top: 16px;
 }
 
-/* Style sidebar links */
 .sidebar button {
-  padding: 6px 8px 6px 16px;
+  padding: 6px 8px 6px 8px;
   text-decoration: none;
   font-size: 20px;
   color: white;
@@ -39,14 +41,26 @@ html, body{
   background-color: transparent;
 }
 
-/* Style links on mouse-over */
 .sidebar button:hover {
-  color: #f1f1f1;
+    opacity: .5;
 }
 
-/* Style the main content */
+.entity-icon{
+    color: yellow;
+    font-size: 1.6em;
+    padding-bottom: 10px;
+}
+
+.activity-icon{
+    color: cornflowerblue;
+    font-size: 1.5em;
+}
+.agent-icon {
+    font-size: 2em;
+    color: green;
+}
 .main {
-  margin-left: 160px; /* Same as the width of the sidenav */
+  margin-left: 160px; /* Same as the width of the sidebar */
   padding: 0px 10px;
 }
 
@@ -55,6 +69,8 @@ html, body{
   .sidebar {padding-top: 15px;}
   .sidebar button {font-size: 18px;}
 }
+
+.
 
 .body .button {
     display: none;

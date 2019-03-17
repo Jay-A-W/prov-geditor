@@ -1,15 +1,17 @@
 Vue.component('sidebar', {
     template: `
         <div class ="sidebar">
-            <button id="entityTool"><i class ="fa fa-fw fa-square"></i></button>
-            <button id="activityTool"><i class ="fa fa-fw fa-square"></i></button>
-            <button id="agentTool"><i class ="fa fa-fw fa-caret-up"></i></button>
-            <button id="prefixTool" @click="showNSModal()">ex</button>
-            <button id="ajaxTool" @click="showExportModal()">ajax</button>
-            <button id="attrTool">attr</button>
-            <button id="saveTool" @click="saveDoc">save</button>
-            <button id="loadTool" @click="loadDoc">load</button>
-            <button id="clearTool" @click="clearGraph()">clear</button>
+            <button id="entityTool"><i class="entity-icon fas fa-square" data-toggle="tooltip" title="Entity Element (Select and click canvas to apply)"></i></button>
+            <button id="activityTool"><i class="activity-icon fas fa-square-full" data-toggle="tooltip" title="Activity Element (Select and click canvas to apply)"></i></button>
+            <button id="agentTool"><i class="agent-icon" data-toggle="tooltip" title="Agent Element (Select and click canvas to apply)">&#9650;</i></button>
+            </br></br>
+            <button id="attrTool" data-toggle="tooltip" title="Add Attribute to element or link (Select and click object to apply)">+attr</button>
+            <button id="prefixTool" data-toggle="tooltip" title="Add Namespace Prefix" @click="showNSModal()">+ns</button>
+            </br></br>
+            <button id="saveTool" data-toggle="tooltip" title="Save" @click="saveDoc"><i class ="fa fa-save"></i></button>
+            <button id="loadTool"  data-toggle="tooltip" title="Load" @click="loadDoc"><i class ="fa fa-upload"></i></button>
+            <button id="clearTool"  data-toggle="tooltip" title="Clear Canvas" @click="clearGraph()"><i class ="fa fa-trash"></i></button>
+            <button id="ajaxTool"  data-toggle="tooltip" title="Convert to different data type" @click="showExportModal()"><i class ="fas fa-file-export"></i></button>
 
         </div>
     `
@@ -28,10 +30,7 @@ Vue.component('sidebar', {
     methods: {
         addClickListener(className) {
             document.getElementById(className).addEventListener("click", function () {
-                //.activeTool = className;
-                console.log(className);
                 store.commit("setActiveTool", className);
-                //console.log(store.state.activeTool);
             });
         },
         showNSModal() {
