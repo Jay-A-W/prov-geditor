@@ -61,12 +61,19 @@ const store = new Vuex.Store({
 
         addPrefixToSet(state, prefix) {
             if (!state.prefixSet.includes(prefix)) {
-                state.prefixSet.push(prefix)
+                if (!(state.prefixSet instanceof Array)) {
+                    state.prefixSet = [state.prefixSet];
+                }
+                state.prefixSet.push(prefix);
                 return true;
             } else {
-                console.log("Prefix already in set")
+                console.log("Prefix already in set");
                 return false;
             }
+        },
+
+        setPrefixSetTo(state, prefixSet) {
+            state.prefixSet = prefixSet;
         }
     },
 })

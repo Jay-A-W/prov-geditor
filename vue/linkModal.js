@@ -44,6 +44,7 @@ Vue.component('link-modal', {
                 return false;
             });
             provLink[0].properties.time = getValidDate($('.link-generated-time').val());
+            localStoreSaveStatements();
             $("#linkModal").hide();
         },
         closeInputModal() {

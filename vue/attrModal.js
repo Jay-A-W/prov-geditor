@@ -102,6 +102,7 @@ Vue.component('attr-modal', {
             } else {
                 provElement[0].attributes.push([qnName, attrValue]);
             }
+            localStoreSaveStatements();
         },
         addAttrLink() {
             let attrNamePrefix = $(".input-attr-name-prefix").val();
@@ -110,8 +111,12 @@ Vue.component('attr-modal', {
             let attrValue = $(".input-attrValue").val();
             let link = store.state.currentLink;
             let type = link.model.attributes.attrs.relType;
+            if (type.constructor.name == "Object") {
+                type = link.model.attributes.labels[0].attrs.text.text;
+            }
+            //let type = link.model.attributes.labels[0].attrs.text.text;
+            console.log(type);
             let provLink = filterForLink(link.model, type);
-            console.log(provLink);
             let qnName = new QualifiedName(attrNamePrefix, attrName, attrNameURI);
             let qnValue;
             if (this.attrNamePrefix == "prov") {
@@ -122,6 +127,7 @@ Vue.component('attr-modal', {
             } else {
                 provLink[0].attributes.push([qnName, attrValue]);
             }
+            localStoreSaveStatements();
         }
     },
     created() {

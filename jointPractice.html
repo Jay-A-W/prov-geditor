@@ -121,18 +121,147 @@
         if (localStorage.getItem('graph')) { //HAS TO BE DONE AFTER INSTANTIATION OF PAPER AS PAPER IS WHAT REACTS TO UPDATE GRAPH VISUALLY
             graph.fromJSON(JSON.parse(localStorage.getItem('graph')));
         }
-
-        if (localStorage.getItem('doc')) {
-            //let storeDoc = JSON.parse(localStorage.getItem('doc'));
-            //let storeDoc = Object.assign(doc, JSON.parse(localStorage.getItem('doc')));
-            //let storeScope = Object.assign(doc.scope, JSON.parse(localStorage.getItem('doc')).scope);
-            //let storeNameSpace = Object.assign(doc.scope.namespaces, JSON.parse(localStorage.getItem('doc')).scope.namespaces);
-            //let storeStatements = Object.assign(doc.scope.statements, JSON.parse(localStorage.getItem('doc')).scope.statements);
-            doc.parent = JSON.parse(localStorage.getItem('doc')).parent;
-            doc.scope.namespaces = JSON.parse(localStorage.getItem('doc')).scope.namespaces;
-            //doc.scope.statements = JSON.parse(localStorage.getItem('doc')).scope.statements;
+        if (localStorage.getItem('prefixSet')) {
+            store.commit("setPrefixSetTo", localStorage.getItem('prefixSet'));
+            console.log(store.state.prefixSet);
         }
-        console.log(doc);
+        if (localStorage.getItem('doc')) {
+            doc.scope.namespaces = JSON.parse(localStorage.getItem('doc')).scope.namespaces;
+        }
+
+        if (localStorage.getItem("statements")) {
+            console.log(JSON.parse(localStorage.getItem("statements")));
+            let localStatements = JSON.parse(localStorage.getItem("statements"));
+            doc.scope.statements = [];
+
+            function addAttr(objectType, localStatement) {
+                let provElement = doc.scope.statements.filter(elementType => elementType.constructor.name == objectType).filter(element => element.identifier.localPart == localStatement.identifier.jsonProvData.localPart);
+                for (let j = 0; j < localStatement.attributes.length; j++) {
+                    let attribute = localStatement.attributes[j];
+                    let qnName = new QualifiedName(attribute[0].jsonProvData.prefix, attribute[0].jsonProvData.localPart, attribute[0].jsonProvData.namespaceURI);
+                    if (attribute[0].jsonProvData.prefix == "prov") {
+                        let qnValue = new QualifiedName(attribute[1].jsonProvData.prefix, attribute[1].jsonProvData.localPart, attribute[1].jsonProvData.namespaceURI);
+                        provElement[0].attributes.push([qnName, qnValue]);
+                    } else {
+                        provElement[0].attributes.push([qnName, attribute[1].jsonProvData]);
+                    }
+                }
+                if ((objectType == "Activity") && (localStatement.hasOwnProperty("startTime")) && (localStatement.hasOwnProperty("endTime"))) {
+                    provElement[0].startTime = getValidDate(localStatement.startTime);
+                    provElement[0].endTime = getValidDate(localStatement.endTime);
+                }
+            }
+
+            function filterForLinkWithStatement(objectType, localStatement) {
+                let source = localStatement.properties.source;
+                let target = localStatement.properties.target;
+                let provLink = doc.scope.statements.filter(linkType => linkType.constructor.name == objectType).filter(function (link) {
+                    if ((link.properties.hasOwnProperty(source.objectType.toLowerCase())) && (link.properties.hasOwnProperty(target.objectType.toLowerCase()))) {
+                        if ((link.properties[source.objectType.toLowerCase()].localPart == source.localPart) && (link.properties[target.objectType.toLowerCase()].localPart == target.localPart)
+                            && (link.properties[source.objectType.toLowerCase()].prefix == source.prefix) && (link.properties[target.objectType.toLowerCase()].prefix == target.prefix)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                });
+                return provLink;
+            }
+
+            function addAttrToLink(objectType, localStatement) {
+                let provLink = filterForLinkWithStatement(objectType, localStatement);
+                for (let j = 0; j < localStatement.attributes.length; j++) {
+                    let attribute = localStatement.attributes[j];
+                    let qnName = new QualifiedName(attribute[0].jsonProvData.prefix, attribute[0].jsonProvData.localPart, attribute[0].jsonProvData.namespaceURI);
+                    if (attribute[0].jsonProvData.prefix == "prov") {
+                        let qnValue = new QualifiedName(attribute[1].jsonProvData.prefix, attribute[1].jsonProvData.localPart, attribute[1].jsonProvData.namespaceURI);
+                        provLink[0].attributes.push([qnName, qnValue]);
+                    } else {
+                        provLink[0].attributes.push([qnName, attribute[1].jsonProvData]);
+                    }
+                }
+                if ((objectType == "Generation") && (localStatement.properties.hasOwnProperty("time"))) {
+                    provLink[0].properties.time = getValidDate(localStatement.properties.time);
+                }
+            }
+
+            for (let i = 0; i < localStatements.length; i++) {
+                let objectType = localStatements[i].objectType;
+                if (localStatements[i].hasOwnProperty("properties")){
+                    source = localStatements[i].properties.source;
+                    target = localStatements[i].properties.target;
+                }
+                switch (objectType) {
+                    case 'Entity':
+                        doc.entity(localStatements[i].identifier.jsonProvData.prefix + ":" + localStatements[i].identifier.jsonProvData.localPart);
+                        addAttr("Entity", localStatements[i]);
+                        break;
+                    case 'Activity':
+                        doc.activity(localStatements[i].identifier.jsonProvData.prefix + ":" + localStatements[i].identifier.jsonProvData.localPart);
+                        addAttr("Activity", localStatements[i]);
+                        break;
+                    case 'Agent':
+                        doc.agent(localStatements[i].identifier.jsonProvData.prefix + ":" + localStatements[i].identifier.jsonProvData.localPart);
+                        addAttr("Agent", localStatements[i]);
+                        break;
+                    case "Generation":
+                        doc.wasGeneratedBy(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
+                        addAttrToLink("Generation", localStatements[i]);
+                        break;
+                    case "Derivation":
+                        doc.wasDerivedFrom(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
+                        addAttrToLink("Derivation", localStatements[i]);
+                        break;
+                    case "Attribution":
+                        doc.wasAttributedTo(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
+                        addAttrToLink("Attribution", localStatements[i]);
+                        break;
+                    case "Usage":
+                        doc.used(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
+                        addAttrToLink("Usage", localStatements[i]);
+                        break;
+                    case "Communication":
+                        doc.wasInformedBy(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
+                        addAttrToLink("Communication", localStatements[i]);
+                        break;
+                    case "Association":
+                        doc.wasAssociatedWith(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
+                        addAttrToLink("Association", localStatements[i]);
+                        break;
+                    case "Delegation":
+                        doc.actedOnBehalfOf(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
+                        addAttrToLink("Delegation", localStatements[i]);
+                        break;
+                    case "Influence":
+                        doc.wasInfluencedBy(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
+                        addAttrToLink("Influence", localStatements[i]);
+                        break;
+                    case "PrimarySource":
+                        //Cannot do PrimarySource relation with current Prov API         
+                        break;
+                    case "Quotation":
+                        //Cannot do Quotation relation with current Prov API 
+                        break;
+                    case "Revision":
+                        //Cannot do Revision relation with current Prov API 
+                        break;
+                    case "Invalidation":
+                        doc.wasInvalidatedBy(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
+                        addAttrToLink("Invalidation", localStatements[i]);
+                        break;
+                    case "Start":
+                        doc.wasStartedBy(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
+                        addAttrToLink("Start", localStatements[i]);
+                        break;
+                    case "End":
+                        doc.wasEndedBy(source.prefix + ":" + source.localPart, target.prefix + ":" + target.localPart);
+                        addAttrToLink("End", localStatements[i]);
+                        break;
+                }
+            }
+
+        } 
+
+        //console.log(doc);
         const menu = document.querySelector(".menu");
         let menuVisible = false;
 
@@ -152,6 +281,7 @@
             doc[label]("ex:" + store.state.currentSource.attributes.attrs.label.text, "ex:" + store.state.currentTarget.attributes.attrs.label.text);
             localStorage.setItem('graph', JSON.stringify(graph));
             localStorage.setItem('doc', JSON.stringify(doc));
+            localStoreSaveStatements();
             for (let child of $(".menu-options").children()) {
                 child.style.display = "none";
             }
@@ -251,12 +381,16 @@
 
         function deleteRelationInDoc(link) {
             let relType = link.attributes.attrs.relType;
+            if (relType.constructor.name == "Object") {
+                relType = link.attributes.labels[0].attrs.text.text;
+            }
             let qualifiedInfluence;
             let filtered;
             let source = getElementById(link.attributes.source.id);
             let target = getElementById(link.attributes.target.id);
             let sourceType = source.attributes.type.replace("custom.", "");
             let targetType = target.attributes.type.replace("custom.", "");
+
             switch (relType) {
                 case "wasGeneratedBy":
                     qualifiedInfluence = "Generation";
@@ -383,6 +517,7 @@
                     doc.scope.statements = filtered;
                     break;
             }
+            localStoreSaveStatements();
             //console.log(link);
             //console.log(doc.scope.statements);
         };
@@ -397,6 +532,7 @@
             link.model.remove();
             localStorage.setItem('graph', JSON.stringify(graph));
             localStorage.setItem('doc', JSON.stringify(doc));
+            localStoreSaveStatements();
         })
 
         paper.on('delete:button:pointerdown', function (elementView, evt) {
@@ -421,6 +557,7 @@
             model.remove();
             localStorage.setItem('graph', JSON.stringify(graph));
             localStorage.setItem('doc', JSON.stringify(doc));
+            localStoreSaveStatements();
         });
 
         function link(source, target, label, vertices) {
@@ -450,71 +587,71 @@
         var foaf = doc.addNamespace("foaf", "http://xmlns.com/foaf/0.1/");
 
         // Entities
-        doc.entity("ex:article", ["dcterms:title", "Crime rises in cities"]);
-        doc.entity("ex:dataSet1");
-        doc.entity("ex:regionList");
-        doc.entity("ex:compositionList");
-        doc.entity("ex:chart1");
+        //doc.entity("ex:article", ["dcterms:title", "Crime rises in cities"]);
+        //doc.entity("ex:dataSet1");
+        //doc.entity("ex:regionList");
+        //doc.entity("ex:compositionList");
+        //doc.entity("ex:chart1");
 
-        // Activities
-        doc.activity("ex:compile1");
-        doc.activity("ex:compose1");
-        doc.activity("ex:illustrate1");
+        //// Activities
+        //doc.activity("ex:compile1");
+        //doc.activity("ex:compose1");
+        //doc.activity("ex:illustrate1");
 
-        // Usage and Generation
-        doc.used("ex:compose1", "ex:dataset1");
-        doc.used("ex:compose1", "ex:regionList");
-        doc.wasGeneratedBy("ex:composition1", "ex:compose1");
-        doc.used("ex:illustrate1", "ex:composition1");
-        doc.wasGeneratedBy("ex:chart1", "ex:illustrate1");
+        //// Usage and Generation
+        //doc.used("ex:compose1", "ex:dataset1");
+        //doc.used("ex:compose1", "ex:regionList");
+        //doc.wasGeneratedBy("ex:composition1", "ex:compose1");
+        //doc.used("ex:illustrate1", "ex:composition1");
+        //doc.wasGeneratedBy("ex:chart1", "ex:illustrate1");
+        //doc.wasGeneratedBy("ex:ehaheagent", "ex:jfifi");
+        //// Agents and Responsibility
+        //doc.wasAssociatedWith("ex:compose1", "ex:derek");
+        //doc.wasAssociatedWith("ex:illustrate1", "ex:derek");
+        //doc.agent("ex:derek",
+        //    ["prov:type", prov.ns.Person, "foaf:givenName", "Derek",
+        //        "foaf:mbox", "<mailto:derek@example.org>"]);
 
-        // Agents and Responsibility
-        doc.wasAssociatedWith("ex:compose1", "ex:derek");
-        doc.wasAssociatedWith("ex:illustrate1", "ex:derek");
-        doc.agent("ex:derek",
-            ["prov:type", prov.ns.Person, "foaf:givenName", "Derek",
-                "foaf:mbox", "<mailto:derek@example.org>"]);
+        //// Roles
+        //doc.agent("ex:chartgen",
+        //    ["prov:type", prov.ns.Organization,
+        //        "foaf:name", "Chart Generators Inc"]);
+        //doc.actedOnBehalfOf("ex:derek", "ex:chartgen");
 
-        // Roles
-        doc.agent("ex:chartgen",
-            ["prov:type", prov.ns.Organization,
-                "foaf:name", "Chart Generators Inc"]);
-        doc.actedOnBehalfOf("ex:derek", "ex:chartgen");
+        //doc.wasAttributedTo("ex:chart1", "ex:derek");
 
-        doc.wasAttributedTo("ex:chart1", "ex:derek");
+        //doc.used("ex:compose1", "ex:dataset1", ["prov:role", ex.qn("dataToCompose")]);
+        //doc.used("ex:compose1", "ex:regionList", ["prov:role", ex.qn("regionsToAggregateBy")]);
+        //doc.wasAssociatedWith("ex:compose1", "ex:derek", ["prov:role", ex.qn("analyst")]);
+        //doc.wasGeneratedBy("ex:composition1", "ex:compose1", ["prov:role", ex.qn("composedData")]);
 
-        doc.used("ex:compose1", "ex:dataset1", ["prov:role", ex.qn("dataToCompose")]);
-        doc.used("ex:compose1", "ex:regionList", ["prov:role", ex.qn("regionsToAggregateBy")]);
-        doc.wasAssociatedWith("ex:compose1", "ex:derek", ["prov:role", ex.qn("analyst")]);
-        doc.wasGeneratedBy("ex:composition1", "ex:compose1", ["prov:role", ex.qn("composedData")]);
+        //// Derivation and Revision
+        //doc.entity("ex:dataSet2");
+        //doc.wasDerivedFrom("ex:dataSet2", "ex:dataset1", ["prov:type", prov.ns.Revision]);
+        //doc.wasDerivedFrom("ex:chart2", "ex:dataSet2");
+        //doc.entity("ex:chart2");
+        //doc.wasDerivedFrom("ex:chart2", "ex:chart1", ["prov:type", prov.ns.Revision]);
 
-        // Derivation and Revision
-        doc.entity("ex:dataSet2");
-        doc.wasDerivedFrom("ex:dataSet2", "ex:dataset1", ["prov:type", prov.ns.Revision]);
-        doc.wasDerivedFrom("ex:chart2", "ex:dataSet2");
-        doc.entity("ex:chart2");
-        doc.wasDerivedFrom("ex:chart2", "ex:chart1", ["prov:type", prov.ns.Revision]);
+        //// Plans
+        //doc.activity("ex:correct1");
+        //doc.agent("ex:edith", ["prov:type", prov.ns.Person]);
+        //doc.entity("ex:instructions");
+        //doc.wasAssociatedWith("ex:correct1", "ex:edith", "ex:instructions");
+        //doc.wasGeneratedBy("ex:dataSet2", "ex:correct1");
 
-        // Plans
-        doc.activity("ex:correct1");
-        doc.agent("ex:edith", ["prov:type", prov.ns.Person]);
-        doc.entity("ex:instructions");
-        doc.wasAssociatedWith("ex:correct1", "ex:edith", "ex:instructions");
-        doc.wasGeneratedBy("ex:dataSet2", "ex:correct1");
+        //// Time
+        //doc.wasGeneratedBy("ex:chart1", "ex:compile1", "2012-03-02T10:30:00");
+        //doc.wasGeneratedBy("ex:chart2", "ex:compile2", "2012-04-01T15:21:00");
+        //doc.activity("ex:correct1", "2012-03-31T09:21:00", "2012-04-01T15:21:00");
 
-        // Time
-        doc.wasGeneratedBy("ex:chart1", "ex:compile1", "2012-03-02T10:30:00");
-        doc.wasGeneratedBy("ex:chart2", "ex:compile2", "2012-04-01T15:21:00");
-        doc.activity("ex:correct1", "2012-03-31T09:21:00", "2012-04-01T15:21:00");
+        //// Alternate Entities and Specialization
+        //doc.entity("ex:quoteInBlogEntry-20130326");
+        //doc.wasDerivedFrom("ex:quoteInBlogEntry-20130326", "ex:article", ["prov:type", prov.ns.Quotation]);
 
-        // Alternate Entities and Specialization
-        doc.entity("ex:quoteInBlogEntry-20130326");
-        doc.wasDerivedFrom("ex:quoteInBlogEntry-20130326", "ex:article", ["prov:type", prov.ns.Quotation]);
-
-        doc.entity("ex:articleV1");
-        doc.specializationOf("ex:articleV1", "ex:article");
-        doc.specializationOf("ex:articleV2", "ex:article");
-        doc.alternateOf("ex:articleV2", "ex:articleV1");
+        //doc.entity("ex:articleV1");
+        //doc.specializationOf("ex:articleV1", "ex:article");
+        //doc.specializationOf("ex:articleV2", "ex:article");
+        //doc.alternateOf("ex:articleV2", "ex:articleV1");
         //function createElement(type,name,prefix,x,y) {
         //    let item;
         //    switch (type) {
@@ -580,6 +717,7 @@
             item.attr('body/magnet', 'passive');
             localStorage.setItem('graph', JSON.stringify(graph));
             localStorage.setItem('doc', JSON.stringify(doc));
+            localStoreSaveStatements();
             return item;
         }
 
@@ -604,11 +742,15 @@
                     createElementNoPROV(activeTool, pointX, pointY); //Create element with no PROV information
                     store.commit('setActiveTool', 'none');
                 }
+                for (let child of $(".menu-options").children()) {
+                    child.style.display = "none";
+                };
                 event.stopPropagation();
             });
         }
         localStorage.setItem('graph', JSON.stringify(graph));
         localStorage.setItem('doc', JSON.stringify(doc));
+        localStoreSaveStatements();
 
     </script>
 </body>

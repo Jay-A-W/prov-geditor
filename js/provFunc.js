@@ -6,6 +6,10 @@ function show_doc_json(doc) {
     var provjson = doc.getProvJSON();
     console.log(provjson);
     console.log(JSON.stringify(provjson, null, "  "));
+    console.log("localStore statements below");
+    if (localStorage.getItem("statements")) {
+        console.log(JSON.parse(localStorage.getItem("statements")));
+    }
 }
 
 function loadFromProvStore(storeID) {

@@ -10,7 +10,7 @@
                </div>
                <div class ="ns-warning-content" hidden>
                     <span class ="close ns-close-warning-content" @click='closeWarning()'>&times; </span>
-                    <div class="ns-invalid-URI"> This URI is invalid </div>
+                    <div class="ns-invalid-URI"> This URI is invalid or prefix already exists</div>
                </div>
            </div>
        </div>
@@ -32,14 +32,23 @@
             let exp = /[-a-zA-Z0-9@:%_\+.~#?&//=]{2,256}\.[a-z]{2,4}\b(\/[-a-zA-Z0-9@:%_\+.~#?&//=]*)?/gi;
             let regex = new RegExp(exp);
             let prefix = $(".ns-input-prefix").val();
-            let URI = $(".ns-input-URI").val()
-            if (URI.match(regex)) {
-                doc.addNamespace(prefix, URI);
+            let URI = $(".ns-input-URI").val();
+            if (URI.match(regex) && !this.alreadyExists(prefix)) {
+                addNamespaceNotParent(doc, prefix, URI);
                 store.commit("addPrefixToSet", prefix);
+                localStorage.setItem('doc', JSON.stringify(doc));
+                localStorage.setItem('prefixSet', store.state.prefixSet);
                 this.closeInputModal();
             } else {
                 $(".ns-input-content").hide();
                 $(".ns-warning-content").show();
+            }
+        },
+        alreadyExists(prefix) {
+            if (doc.scope.namespaces.hasOwnProperty(prefix)) {
+                return true;
+            } else {
+                return false;
             }
         },
         closeInputModal() {
