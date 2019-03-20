@@ -39,7 +39,7 @@
                 <li class="menu-option option-wasEndedBy" onclick="addRelation('wasEndedBy')" hidden>wasEndedBy</li>
             </ul>
         </div>
-        <div id="graph"></div>
+        <div id="canvas"></div>
         <a href="#" onclick="show_doc_json(doc.scope);">exampleexample</a>
     </div>
     <!-- dependencies -->
@@ -70,7 +70,6 @@
     <script src="vue/index.js"></script>
     <!-- code -->
     <script type="text/javascript">
-
         let doc = prov.document();
         store.commit("addPrefixToSet", 'xsd');
         store.commit("addPrefixToSet", 'prov');
@@ -81,12 +80,11 @@
 
         let json = {};
         let graph = new joint.dia.Graph;
-
         var paper = new joint.dia.Paper({
-            el: document.getElementById('graph'),
+            el: document.getElementById('canvas'),
             model: graph,
-            width: document.getElementById('graph').width,
-            height: document.getElementById('graph').height,
+            width: document.getElementById('canvas').width,
+            height: document.getElementById('canvas').height,
             gridSize: 10,
             drawGrid: true,
             linkPinning: false,
@@ -104,7 +102,7 @@
                         $("#attrModal").show();
                         store.commit('setActiveTool', 'none');
                     }
-                }
+                },
             }),
             linkView: joint.dia.LinkView.extend({
                 pointerdblclick: function (evt, x, y) {
@@ -123,6 +121,12 @@
                 }
             }),
         });
+        
+        //paper.on('cell:pointerup', function (cellView, evt) { \\For firefox as event behaves differently in firefox, however not working as it doesn't update simultaneous to the linking event
+        //    xCoordinate = evt.clientX;
+        //    yCoordinate = evt.clientY;
+        //    console.log(xCoordinate);
+        //})
 
         if (localStorage.getItem('graph')) { //HAS TO BE DONE AFTER INSTANTIATION OF PAPER AS PAPER IS WHAT REACTS TO UPDATE GRAPH VISUALLY
             graph.fromJSON(JSON.parse(localStorage.getItem('graph')));
@@ -232,10 +236,19 @@
             let target = link.get('target');
             if (source.id && target.id) {
                 // both ends of the link are connected.
-                const origin = {
-                    left: event.clientX,
-                    top: event.clientY
-                };
+                let origin = {};
+                if (typeof event == "undefined") { //For firefox as event is undefined for firefox, cannot use a listener as it inteferes with graph events.
+                    origin = {
+                        left: 0, //Currently left at 0 to prevent error in Firefox
+                        top: 0
+                    };
+                } else {
+                    origin = {
+                        left: event.clientX,
+                        top: event.clientY
+                    };
+                }
+              
                 setPosition(origin);
                 let sourceElement = getElementById(source.id);
                 let targetElement = getElementById(target.id);
@@ -583,11 +596,11 @@
         }
 
         window.onload = function () {
-            document.getElementById("graph").addEventListener("click", function () {
+            document.getElementById("canvas").addEventListener("click", function (event) {
                 if (menuVisible) toggleMenu("hide"); //For context menu
                 let activeTool = store.state.activeTool;
-                let pointX = event.clientX;
-                let pointY = event.clientY;
+                let pointX = event.clientX-50;
+                let pointY = event.clientY-20;
                 if ((activeTool == "entity") || (activeTool == "activity") || (activeTool == "agent")) {
                     createElementNoPROV(activeTool, pointX, pointY); //Create element with no PROV information
                     store.commit('setActiveTool', 'none');
