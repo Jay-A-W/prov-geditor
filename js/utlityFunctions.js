@@ -513,23 +513,26 @@ function editPROVElement(type, currentName, newName, prefix, startTime, endTime)
         let attrs = [];
         switch (justType) {
             case 'Entity':
-                item = new joint.shapes.custom.Entity();
-                item.attr('label/text', newName);
-                item.attr('prefix', prefix);
+                //item = new joint.shapes.custom.Entity();
+                //item.attr('label/text', newName);
+                //item.attr('prefix', prefix);
+                store.state.currentElement.model.attr('prefix/text', prefix);
                 let entity = doc.entity(prefix + ":" + newName);
                 break;
 
             case 'Activity':
-                item = new joint.shapes.custom.Activity();
-                item.attr('label/text', newName);
-                item.attr('prefix', prefix);
+                //item = new joint.shapes.custom.Activity();
+                //item.attr('label/text', newName);
+                //item.attr('prefix', prefix);
+                store.state.currentElement.model.attr('prefix/text', prefix);
                 let activity = doc.activity(prefix + ":" + newName, startTime, endTime);
                 break;
 
             case 'Agent':
-                item = new joint.shapes.custom.Agent();
-                item.attr('label/text', newName);
-                item.attr('prefix', prefix);
+                //item = new joint.shapes.custom.Agent();
+                //item.attr('label/text', newName);
+                //item.attr('prefix', prefix);
+                store.state.currentElement.model.attr('prefix/text', prefix);
                 let agent = doc.agent(prefix + ":" + newName);
                 break;
             default:

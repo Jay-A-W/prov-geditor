@@ -14,7 +14,7 @@ Vue.component('attr-modal', {
                    </div>
                    </br>
                    <div class="attr-val-prefix">
-                       <div> Enter Attribute Value Prefix </div>
+                       <div> Enter Attribute Value Prefix for {{this.currentName}}</div>
                        <select v-if="attrNamePrefix==='prov'" class="input-attr-value-prefix modal-input" name="AttrPrefix">
                                 <option value="" selected disabled>Choose Prefix</option>
                                 <option v-for="prefix in prefixes" :key='prefix' v-bind:value='prefix'>{{prefix}}</option>
@@ -37,7 +37,7 @@ Vue.component('attr-modal', {
     data: function () {
         return {
             prefixes: store.state.prefixSet,
-            attrNamePrefix: "none"
+            attrNamePrefix: "none",
         }
     },
     computed: {
@@ -130,6 +130,4 @@ Vue.component('attr-modal', {
             localStoreSaveStatements();
         }
     },
-    created() {
-    }
 })

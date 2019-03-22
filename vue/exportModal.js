@@ -2,8 +2,8 @@
     template: `
        <div id="export-modal" class="modal" hidden>
            <div class ="modal-content">
-            <span class ="close close-input-content" @click='close()'>&times; </span>
             <div class="export-input-content">
+                <span class ="close close-input-content" @click='close()'>&times; </span>
                 <select class="export-options" name="Export">
                     <option value="text/turtle">turtle</option>
                     <option value="text/provenance-notation">provenance</option>
@@ -35,7 +35,12 @@
     },
     methods: {
         submit() {
-            this.ajaxRequest($(".export-options").val());
+            if ($(".export-options").val() == "application/json") {
+                $("#exported-data-modal").show();
+                $(".export-data-area").val(JSON.stringify(getProvAsJSON(doc)));
+            } else {
+                this.ajaxRequest($(".export-options").val());
+            }
             $("#export-modal").hide();
         },
         close() {

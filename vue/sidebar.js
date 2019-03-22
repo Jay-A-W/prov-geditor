@@ -10,8 +10,9 @@ Vue.component('sidebar', {
             </br></br>
             <button id="saveTool" data-toggle="tooltip" title="Save" @click="saveDoc"><i class ="fa fa-save"></i></button>
             <button id="loadTool"  data-toggle="tooltip" title="Load" @click="loadDoc"><i class ="fa fa-upload"></i></button>
-            <button id="clearTool"  data-toggle="tooltip" title="Clear Canvas" @click="clearGraph()"><i class ="fa fa-trash"></i></button>
             <button id="ajaxTool"  data-toggle="tooltip" title="Convert to different data type" @click="showExportModal()"><i class ="fas fa-file-export"></i></button>
+            </br></br>
+            <button id="clearTool"  data-toggle="tooltip" title="Clear Canvas" @click="clearGraph()"><i class ="fa fa-trash"></i></button>
 
         </div>
     `
