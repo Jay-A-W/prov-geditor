@@ -171,6 +171,21 @@ html, body{
     margin: 10px auto;
 }
 
+.help-content{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.help-list{
+    text-align: left;
+}
+
+.help-list > li {
+    margin: 5px;
+}
+
 .html-element {
     position: absolute;
     background: yellow;

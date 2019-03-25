@@ -20,6 +20,7 @@
         <load-modal></load-modal>
         <save-modal></save-modal>
         <exported-data-modal></exported-data-modal>
+        <help-modal></help-modal>
         <div class="menu">
             <ul class="menu-options">
                 <li class="menu-option option-wasGeneratedBy" onclick="addRelation('wasGeneratedBy')" hidden>wasGeneratedBy</li>
@@ -67,6 +68,7 @@
     <script src="vue/loadModal.js"></script>
     <script src="vue/saveModal.js"></script>
     <script src="vue/exportedDataModal.js"></script>
+    <script src="vue/helpModal.js"></script>
     <script src="vue/index.js"></script>
     <!-- code -->
     <script type="text/javascript">
@@ -121,7 +123,7 @@
                 }
             }),
         });
-        
+
         //paper.on('cell:pointerup', function (cellView, evt) { \\For firefox as event behaves differently in firefox, however not working as it doesn't update simultaneous to the linking event
         //    xCoordinate = evt.clientX;
         //    yCoordinate = evt.clientY;
@@ -249,7 +251,7 @@
                         top: event.clientY
                     };
                 }
-              
+
                 setPosition(origin);
                 let sourceElement = getElementById(source.id);
                 let targetElement = getElementById(target.id);
@@ -498,8 +500,8 @@
             document.getElementById("canvas").addEventListener("click", function (event) {
                 if (menuVisible) toggleMenu("hide"); //For context menu
                 let activeTool = store.state.activeTool;
-                let pointX = event.clientX-50;
-                let pointY = event.clientY-20;
+                let pointX = event.clientX - 50;
+                let pointY = event.clientY - 20;
                 if ((activeTool == "entity") || (activeTool == "activity") || (activeTool == "agent")) {
                     createElementNoPROV(activeTool, pointX, pointY); //Create element with no PROV information
                     store.commit('setActiveTool', 'none');

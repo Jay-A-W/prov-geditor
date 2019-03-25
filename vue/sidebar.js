@@ -13,7 +13,8 @@ Vue.component('sidebar', {
             <button id="ajaxTool"  data-toggle="tooltip" title="Convert to different data type" @click="showExportModal()"><i class ="fas fa-file-export"></i></button>
             </br></br>
             <button id="clearTool"  data-toggle="tooltip" title="Clear Canvas" @click="clearGraph()"><i class ="fa fa-trash"></i></button>
-
+            </br></br>
+            <button id="helpTool"  data-toggle="tooltip" title="How to use the PROV Editor" @click="showHelpModal()"><i class ="fas fa-question"></i></button>
         </div>
     `
     ,
@@ -56,6 +57,9 @@ Vue.component('sidebar', {
         loadDoc() {
             $("#load-modal").show();
             $(".load-data-area").val("");
+        },
+        showHelpModal() {
+            $("#help-modal").show();
         }
     },
     mounted() {
