@@ -14,16 +14,10 @@ Vue.component('save-modal', {
         </div>
     `
     ,
-    props: {
-
-    },
     data: function () {
         return {
             activeTool: String,
         }
-    },
-    computed: {
-
     },
     methods: {
         copyData() {
@@ -34,7 +28,5 @@ Vue.component('save-modal', {
         closeModal() {
             $("#save-modal").hide();
         },
-    },
-    mounted() {
     }
 })

@@ -1,6 +1,6 @@
 Vue.use(Vuex);
-const store = new Vuex.Store({
-    state: {
+const store = new Vuex.Store({ //Creation of Vuex store
+    state: { //State information
         activeTool: "none",
         currentSource: "",
         currentTarget: "",
@@ -8,7 +8,7 @@ const store = new Vuex.Store({
         currentElement: "undefined",
         prefixSet: [],
     },
-    mutations: {
+    mutations: { //Mutations to change Vuex store state data
         setActiveTool(state, activeToolName) {
             switch (activeToolName) {
                 case "entityTool":
@@ -78,7 +78,7 @@ const store = new Vuex.Store({
     },
 })
 
-var provEditor = new Vue({
+var provEditor = new Vue({ //Vue instance
     el: '#prov-editor',
     data: {
     }

@@ -17,25 +17,14 @@ Vue.component('link-modal', {
        </div>
     `
     ,
-    props:{
-       
-    },
-    data: function(){
-        return {
-          
-        }
-    },
-    computed: {
-        
-    },
     methods: {
-        editLink(){
+        editLink(){ //Edit link specifically for Generation relation for generatedAt time
             let currentLink = store.state.currentLink;
             let source = getElementById(currentLink.model.attributes.source.id);
             let target = getElementById(currentLink.model.attributes.target.id);
             let sourceType = source.attributes.type.replace("custom.", "");
             let targetType = target.attributes.type.replace("custom.", "");
-            let provLink = doc.scope.statements.filter(linkType => linkType.constructor.name == "Generation").filter(function (link) {
+            let provLink = doc.scope.statements.filter(linkType => linkType.constructor.name == "Generation").filter(function (link) { //Filter PROV Document for specific Generation relation
                 if ((link.properties.hasOwnProperty(sourceType.toLowerCase())) && (link.properties.hasOwnProperty(targetType.toLowerCase()))) {
                     if ((link[sourceType.toLowerCase()].localPart == source.attributes.attrs.label.text) && (link[targetType.toLowerCase()].localPart == target.attributes.attrs.label.text)) {
                         return true;
@@ -56,7 +45,5 @@ Vue.component('link-modal', {
             $(".warning-content").hide();
             $(".input-content").show();
         },
-    },
-    created() {
     }
 })

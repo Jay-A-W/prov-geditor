@@ -17,22 +17,9 @@ Vue.component('help-modal', {
         </div>
     `
     ,
-    props: {
-
-    },
-    data: function () {
-        return {
-         
-        }
-    },
-    computed: {
-
-    },
     methods: {
         closeModal() {
             $("#help-modal").hide();
         }
-    },
-    mounted() {
     }
 })

@@ -1,156 +1,4 @@
-﻿function URI(uri) {
-    this.uri = uri;
-}
-URI.prototype.getURI = function () {
-    return this.uri;
-};
-
-// PROV Record
-function Record() {
-    var i, l;
-    // Parsing the optional attribute-value pairs if the last argument is a list
-    this.attributes = [];
-    var len = arguments.length;
-    if (len > 1 && arguments[len - 1] instanceof Array) {
-        // Requiring at least 3 arguments (record-specific first term, an array)
-        var attrPairs = arguments[len - 1];
-        for (i = 0, l = attrPairs.length; i < l; i += 2) {
-            requireQualifiedName(attrPairs[i]);
-            this.setAttr(attrPairs[i], attrPairs[i + 1]);
-        }
-    }
-}
-Record.prototype = {
-    /* GETTERS & SETTERS */
-    // Identifier
-    id: function (identifier) {
-        this.identifier = identifier;
-        return this;
-    },
-    getId: function () {
-        return this.identifier;
-    },
-    setAttr: function (k, v) {
-        var i;
-        var existing = false;
-        var values = this.getAttr(k);
-        for (i = 0; i < values.length; i++) {
-            if (v.equals(values[i])) {
-                existing = true;
-                break;
-            }
-        }
-        if (!existing) {
-            this.attributes.push([k, v]);
-        }
-    },
-
-    // Arbitrary attributes
-    getAttr: function (attr_name) {
-        var i;
-        var results = [];
-        for (i = 0; i < this.attributes.length; i++) {
-            if (attr_name.equals(this.attributes[i][0])) {
-                results.push(this.attributes[i][1]);
-            }
-        }
-        return results;
-    }
-};
-// Element
-function Element(identifier) {
-    Record.apply(this, arguments);
-    this.identifier = identifier;
-}
-Element.prototype = Object.create(Record.prototype);
-Element.prototype.constructor = Element;
-
-    // Entity
-function Entity(identifier) {
-    Element.apply(this, arguments);
-}
-Entity.prototype = Object.create(Element.prototype);
-Entity.prototype.constructor = Entity;
-Entity.prototype.provn_name = "entity";
-Entity.prototype.toString = function () {
-    var output = [];
-    output.push(String(this.identifier));
-    var attr = this.attributes.map(function (x) {
-        return x.join("=");
-    }).join(", ");
-    if (attr !== "") {
-        output.push("[" + attr + "]");
-    }
-    return Entity.prototype.provn_name + "(" + output.join(", ") + ")";
-};
-
-// PROV Qualified Name
-function QualifiedName(prefix, localPart, namespaceURI) {
-    this.prefix = prefix;
-    this.localPart = localPart;
-    this.namespaceURI = namespaceURI;
-    URI.call(this, namespaceURI + localPart);
-}
-QualifiedName.prototype = Object.create(URI.prototype);
-QualifiedName.prototype.constructor = QualifiedName;
-QualifiedName.prototype.toString = function () {
-    if (this.prefix == "default") {
-        var ret = this.localPart;
-    } else {
-        var ret = this.prefix + ":" + this.localPart;
-    }
-    return ret;
-};
-QualifiedName.prototype.equals = function (other) {
-    return ((other instanceof QualifiedName) &&
-        (this.namespaceURI === other.namespaceURI) &&
-        (this.localPart === other.localPart)
-    );
-};
-
-
-URI.prototype.getProvJSON = function () {
-    return { '$': this.getURI(), 'type': 'xsd:anyURI' };
-};
-QualifiedName.prototype.getProvJSON = function () {
-    return { '$': this.toString(), 'type': 'prov:QUALIFIED_NAME' };
-};
-function _getProvJSON(value) {
-    var i, l;
-    if (value && typeof value.getProvJSON === 'function') {
-        return value.getProvJSON();
-    }
-    if (typeof value === 'array') {
-        var values = [];
-        for (i = 0, l = value.length; i < l; i++) {
-            values.push(_getProvJSON(value[i]));
-        }
-        return values;
-    }
-    if (value instanceof Date) {
-        return { '$': value.toISOString(), 'type': 'xsd:dateTime' };
-    }
-    return value;
-}
-
-function Namespace(prefix, namespaceURI, predefined) {
-    var i, l;
-    this.prefix = prefix;
-    this.namespaceURI = namespaceURI;
-    if (predefined !== undefined) {
-        for (i = 0, l = predefined.length; i < l; i++) {
-            this.qn(predefined[i]);
-        }
-    }
-}
-Namespace.prototype.qn = function (localPart) {
-    if (!this.hasOwnProperty(localPart)) {
-        this[localPart] = new QualifiedName(this.prefix, localPart, this.namespaceURI);
-    }
-    return this[localPart];
-}
-
-function addNamespaceNotParent(doc, ns_or_prefix, uri) { //Original function will add the ns to the parent based on a condition, this doesn't
+﻿function addNamespaceNotParent(doc, ns_or_prefix, uri) { //Original function will add the ns to the parent based on a condition, this doesn't (Taken from Prov.js)
     var ns;
     //this._documentOnly();
     if (ns_or_prefix instanceof Namespace) {
@@ -163,16 +11,14 @@ function addNamespaceNotParent(doc, ns_or_prefix, uri) { //Original function wil
     return ns;
 }
 
-function getProvAsJSON(doc) {
+function getProvAsJSON(doc) { //Returns PROV Document data as JSON
     return doc.scope.getProvJSON();
 }
-function insensitiveStringCompare(string1, string2) {
-    return typeof string1 === 'string' && typeof string2 === 'string'
-        ? string1.localeCompare(string2, undefined, { sensitivity: 'accent' }) === 0
-        : string1 === string2;
+function insensitiveStringCompare(stringA, stringB) { //Compares 2 strings ignoring case 
+    return stringA.toUpperCase() === stringB.toUpperCase();
 }
 
-function getValidDate(dt) {
+function getValidDate(dt) { //Taken from prov.js
     var ret;
     if (dt instanceof Date) {
         ret = new Date(dt);
@@ -184,7 +30,7 @@ function getValidDate(dt) {
     return ret;
 }
 
-function getElementById(id) {
+function getElementById(id) { //Retrieves an element from joint graph object based on the joint id.
     for (let element of graph.getElements()) {
         if (element.id === id) {
             return element;
@@ -192,13 +38,13 @@ function getElementById(id) {
     }
 };
 
-function filterForLink(link, relType) {
+function filterForLink(link, relType) { //Retrieves link from PROV document using data retrieved from joint graph link object
     let source = getElementById(link.attributes.source.id);
     let target = getElementById(link.attributes.target.id);
     let sourceType = source.attributes.type.replace("custom.", "");
     let targetType = target.attributes.type.replace("custom.", "");
     let filtered;
-    function filterLink(link, qualifiedInfluence) {
+    function filterLink(link, qualifiedInfluence) { //Retrieves link from set of statements based on the source and target and object name
         let filtered = doc.scope.statements.filter(function (link) {
             if (link.constructor.name == qualifiedInfluence) {
                 if ((link.properties.hasOwnProperty(sourceType.toLowerCase())) && (link.properties.hasOwnProperty(targetType.toLowerCase()))) {
@@ -212,14 +58,14 @@ function filterForLink(link, relType) {
         return filtered;
     }
 
-    switch (relType) {
+    switch (relType) { //Each relation type has a different qualified influence and potentially different source and target object names
         case "wasGeneratedBy":
             qualifiedInfluence = "Generation";
             filtered = filterLink(link, qualifiedInfluence);
             break;
         case "wasDerivedFrom":
             qualifiedInfluence = "Derivation";
-            filtered = doc.scope.statements.filter(function (link) {
+            filtered = doc.scope.statements.filter(function (link) { //Whilst an entity to entity relation the source and target entities are named differently "generated" vs "used" to differentiate them
                 if (link.constructor.name == qualifiedInfluence) {
                     if ((link.properties.hasOwnProperty('generatedEntity') && (link.properties.hasOwnProperty('usedEntity')))) {
                         if ((link['generatedEntity'].localPart == source.attributes.attrs.label.text) && (link['usedEntity'].localPart == target.attributes.attrs.label.text)) {
@@ -328,7 +174,7 @@ function filterForLink(link, relType) {
     return filtered;
 }
 
-function filterOutLink(link, qualifiedInfluence) {
+function filterOutLink(link, qualifiedInfluence) { //Remove specific link from statements
     let source = getElementById(link.attributes.source.id);
     let target = getElementById(link.attributes.target.id);
     let sourceType = source.attributes.type.replace("custom.", "");
@@ -346,13 +192,9 @@ function filterOutLink(link, qualifiedInfluence) {
     return filtered;
 }
 
-function localStoreSaveStatements() {
-    let statementJsonMap = {};
+function localStoreSaveStatements() { //Save statements to localStore
     let statements = [];
-    for (let statement of doc.scope.statements) {
-        //attributesJsonMap.
-    }
-    for (let i = 0; i < doc.scope.statements.length; i++) {
+    for (let i = 0; i < doc.scope.statements.length; i++) { //As local storage does not save metadata of object I need to retrieve the specific data I want rather than the whole statement object to repopulate the object with local data later
 
         let statement = {};
         statement.objectType = doc.scope.statements[i].constructor.name;
@@ -362,17 +204,17 @@ function localStoreSaveStatements() {
         let source = {};
         let target = {};
         statement.properties = properties;
-        for (let j = 0; j < doc.scope.statements[i].attributes.length; j++) {
+        for (let j = 0; j < doc.scope.statements[i].attributes.length; j++) { //Getting the attributes of a statement
             let attribute = [];
             attributes.push(attribute);
-            for (let k = 0; k < doc.scope.statements[i].attributes[j].length; k++) {
+            for (let k = 0; k < doc.scope.statements[i].attributes[j].length; k++) { //[i][0] holds the qualified name of an attribute, [i][1] holds the value of the attribute
                 let attributeData = {};
                 attributeData.objectType = doc.scope.statements[i].attributes[j][k].constructor.name;
                 attributeData.jsonProvData = doc.scope.statements[i].attributes[j][k];
                 attributes[j].push(attributeData);
             }
         }
-        if ((statement.objectType == "Activity") && (doc.scope.statements[i].hasOwnProperty("startTime")) && (doc.scope.statements[i].hasOwnProperty("endTime"))) {
+        if ((statement.objectType == "Activity") && (doc.scope.statements[i].hasOwnProperty("startTime")) && (doc.scope.statements[i].hasOwnProperty("endTime"))) { //PROV Doc stores activity start and end time differently
             statement.startTime = doc.scope.statements[i].startTime;
             statement.endTime = doc.scope.statements[i].endTime;
         }
@@ -381,7 +223,7 @@ function localStoreSaveStatements() {
             identifier.jsonProvData = doc.scope.statements[i].identifier;
             statement.identifier = identifier;
         } else { //links do not have identifiers
-            switch (statement.objectType) {
+            switch (statement.objectType) { //The source and target object type is different depending on the relation so each case must be taken into account
                 case "Generation":
                     source.prefix = doc.scope.statements[i].properties.entity.prefix;
                     source.localPart = doc.scope.statements[i].properties.entity.localPart;
@@ -450,13 +292,13 @@ function localStoreSaveStatements() {
                     target.objectType = "Influencer";
                     break;
                 case "PrimarySource":
-                    //Cannot do PrimarySource relation with current Prov API         
+                    //Cannot do PrimarySource relation with current Prov API due to missing functionality    
                     break;
                 case "Quotation":
-                    //Cannot do Quotation relation with current Prov API 
+                    //Cannot do Quotation relation with current Prov API due to missing functionality
                     break;
                 case "Revision":
-                     //Cannot do Revision relation with current Prov API 
+                     //Cannot do Revision relation with current Prov API due to missing functionality
                     break;
                 case "Invalidation":
                     source.prefix = doc.scope.statements[i].properties.entity.prefix;
@@ -493,10 +335,9 @@ function localStoreSaveStatements() {
     return statements;
 }
 
-function editPROVElement(type, currentName, newName, prefix, startTime, endTime) {
-    var ex = doc.addNamespace("ex", "http://www.example.org#");
-    let provElement = doc.scope.statements.filter(elementType => elementType.constructor.name == type).filter(element => element.identifier.localPart == currentName);
-    if (provElement.length != 0) {
+function editPROVElement(type, currentName, newName, prefix, startTime, endTime) { //Edit function of the PROV Editor calls this
+    let provElement = doc.scope.statements.filter(elementType => elementType.constructor.name == type).filter(element => element.identifier.localPart == currentName); //Retrieve element from PROV doc
+    if (provElement.length != 0) { //If element exists in PROV doc we edit it by modifying the PROV doc element
 
         let prevName = provElement[0].identifier.localPart;
         provElement[0].identifier.prefix = prefix;
@@ -508,30 +349,21 @@ function editPROVElement(type, currentName, newName, prefix, startTime, endTime)
             provElement[0].endTime = getValidDate(endTime);
         }
 
-    } else {
+    } else { //If element is newly created with no PROV doc data we create a new element in the PROV doc
         let justType = type.replace("custom.", "")
         let attrs = [];
         switch (justType) {
             case 'Entity':
-                //item = new joint.shapes.custom.Entity();
-                //item.attr('label/text', newName);
-                //item.attr('prefix', prefix);
                 store.state.currentElement.model.attr('prefix/text', prefix);
                 let entity = doc.entity(prefix + ":" + newName);
                 break;
 
             case 'Activity':
-                //item = new joint.shapes.custom.Activity();
-                //item.attr('label/text', newName);
-                //item.attr('prefix', prefix);
                 store.state.currentElement.model.attr('prefix/text', prefix);
                 let activity = doc.activity(prefix + ":" + newName, startTime, endTime);
                 break;
 
             case 'Agent':
-                //item = new joint.shapes.custom.Agent();
-                //item.attr('label/text', newName);
-                //item.attr('prefix', prefix);
                 store.state.currentElement.model.attr('prefix/text', prefix);
                 let agent = doc.agent(prefix + ":" + newName);
                 break;
@@ -541,44 +373,29 @@ function editPROVElement(type, currentName, newName, prefix, startTime, endTime)
     }
 }
 
-function loadStatements(localStatementData) {
+function loadStatements(localStatementData) { //Loads statement data from localStorage into PROV doc
     let localStatements = localStatementData;
     doc.scope.statements = [];
 
-    function addAttr(objectType, localStatement) {
+    function addAttr(objectType, localStatement) { //Adds attribute to PROV Doc element manually as functionality does not exist in Prov.js
         let provElement = doc.scope.statements.filter(elementType => elementType.constructor.name == objectType).filter(element => element.identifier.localPart == localStatement.identifier.jsonProvData.localPart);
         for (let j = 0; j < localStatement.attributes.length; j++) {
             let attribute = localStatement.attributes[j];
             let qnName = new QualifiedName(attribute[0].jsonProvData.prefix, attribute[0].jsonProvData.localPart, attribute[0].jsonProvData.namespaceURI);
-            if (attribute[0].jsonProvData.prefix == "prov") {
+            if (attribute[0].jsonProvData.prefix == "prov") { //If attribute prefix is prov then the value must be a qualified name to be valid
                 let qnValue = new QualifiedName(attribute[1].jsonProvData.prefix, attribute[1].jsonProvData.localPart, attribute[1].jsonProvData.namespaceURI);
                 provElement[0].attributes.push([qnName, qnValue]);
             } else {
                 provElement[0].attributes.push([qnName, attribute[1].jsonProvData]);
             }
         }
-        if ((objectType == "Activity") && (localStatement.hasOwnProperty("startTime")) && (localStatement.hasOwnProperty("endTime"))) {
-            provElement[0].startTime = getValidDate(localStatement.startTime);
+        if ((objectType == "Activity") && (localStatement.hasOwnProperty("startTime")) && (localStatement.hasOwnProperty("endTime"))) { //Loading start and end time for activities if it exists
+            provElement[0].startTime = getValidDate(localStatement.startTime); //localStorage time data loses it's valid format/metadata when stored, getValidDate ensures it is in valid date format
             provElement[0].endTime = getValidDate(localStatement.endTime);
         }
     }
 
-    function filterForLinkWithStatement(objectType, localStatement) {
-        let source = localStatement.properties.source;
-        let target = localStatement.properties.target;
-        let provLink = doc.scope.statements.filter(linkType => linkType.constructor.name == objectType).filter(function (link) {
-            if ((link.properties.hasOwnProperty(source.objectType.toLowerCase())) && (link.properties.hasOwnProperty(target.objectType.toLowerCase()))) {
-                if ((link.properties[source.objectType.toLowerCase()].localPart == source.localPart) && (link.properties[target.objectType.toLowerCase()].localPart == target.localPart)
-                    && (link.properties[source.objectType.toLowerCase()].prefix == source.prefix) && (link.properties[target.objectType.toLowerCase()].prefix == target.prefix)) {
-                    return true;
-                }
-            }
-            return false;
-        });
-        return provLink;
-    }
-
-    function addAttrToLink(objectType, localStatement) {
+    function addAttrToLink(objectType, localStatement) { //Adds an attribute to link
         let provLink = filterForLinkWithStatement(objectType, localStatement);
         for (let j = 0; j < localStatement.attributes.length; j++) {
             let attribute = localStatement.attributes[j];
@@ -595,9 +412,25 @@ function loadStatements(localStatementData) {
         }
     }
 
+
+    function filterForLinkWithStatement(objectType, localStatement) { //Retrieves specific link using statement array
+        let source = localStatement.properties.source;
+        let target = localStatement.properties.target;
+        let provLink = doc.scope.statements.filter(linkType => linkType.constructor.name == objectType).filter(function (link) {
+            if ((link.properties.hasOwnProperty(source.objectType.toLowerCase())) && (link.properties.hasOwnProperty(target.objectType.toLowerCase()))) {
+                if ((link.properties[source.objectType.toLowerCase()].localPart == source.localPart) && (link.properties[target.objectType.toLowerCase()].localPart == target.localPart)
+                    && (link.properties[source.objectType.toLowerCase()].prefix == source.prefix) && (link.properties[target.objectType.toLowerCase()].prefix == target.prefix)) {
+                    return true;
+                }
+            }
+            return false;
+        });
+        return provLink;
+    }
+
     for (let i = 0; i < localStatements.length; i++) {
         let objectType = localStatements[i].objectType;
-        if (localStatements[i].hasOwnProperty("properties")) {
+        if (localStatements[i].hasOwnProperty("properties")) { //Only links have properties so source and target is set after this check
             source = localStatements[i].properties.source;
             target = localStatements[i].properties.target;
         }

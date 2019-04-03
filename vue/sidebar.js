@@ -18,16 +18,10 @@ Vue.component('sidebar', {
         </div>
     `
     ,
-    props:{
-       
-    },
     data: function(){
         return {
             activeTool: String,
         }
-    },
-    computed: {
-       
     },
     methods: {
         addClickListener(className) {
@@ -60,6 +54,9 @@ Vue.component('sidebar', {
         },
         showHelpModal() {
             $("#help-modal").show();
+        },
+        uploadToProvStore() {
+            submitToProvStore(doc.scope);
         }
     },
     mounted() {

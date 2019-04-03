@@ -31,17 +31,11 @@ Vue.component('attr-modal', {
        </div>
     `
     ,
-    props: {
-
-    },
     data: function () {
         return {
             prefixes: store.state.prefixSet,
             attrNamePrefix: "none",
         }
-    },
-    computed: {
-
     },
     methods: {
         submitAttr() {
@@ -83,7 +77,7 @@ Vue.component('attr-modal', {
                 $(".warning-content").show();
             }
         },
-        addAttrElement() {
+        addAttrElement() { //Add attribute to element
             let attrNamePrefix = $(".input-attr-name-prefix").val();
             let attrNameURI = doc.scope.namespaces[attrNamePrefix].namespaceURI;
             let attrName = $(".input-attrName").val();
@@ -94,7 +88,7 @@ Vue.component('attr-modal', {
             let provElement = doc.scope.statements.filter(elementType => elementType.constructor.name == type).filter(element => element.identifier.localPart == currentName);
             let qnName = new QualifiedName(attrNamePrefix, attrName, attrNameURI);
             let qnValue;
-            if (this.attrNamePrefix == "prov") {
+            if (this.attrNamePrefix == "prov") { //If attr name prefix is prov then the value must be a qualified name object
                 let attrValuePrefix = $(".input-attr-value-prefix").val();
                 let attrValURI = doc.scope.namespaces[attrValuePrefix].namespaceURI;
                 qnValue = new QualifiedName(attrValuePrefix, attrValue, attrValURI);
@@ -104,7 +98,7 @@ Vue.component('attr-modal', {
             }
             localStoreSaveStatements();
         },
-        addAttrLink() {
+        addAttrLink() { //Add attribute to link
             let attrNamePrefix = $(".input-attr-name-prefix").val();
             let attrNameURI = doc.scope.namespaces[attrNamePrefix].namespaceURI;
             let attrName = $(".input-attrName").val();
@@ -114,12 +108,10 @@ Vue.component('attr-modal', {
             if (type.constructor.name == "Object") {
                 type = link.model.attributes.labels[0].attrs.text.text;
             }
-            //let type = link.model.attributes.labels[0].attrs.text.text;
-            console.log(type);
             let provLink = filterForLink(link.model, type);
             let qnName = new QualifiedName(attrNamePrefix, attrName, attrNameURI);
             let qnValue;
-            if (this.attrNamePrefix == "prov") {
+            if (this.attrNamePrefix == "prov") { //If attr name prefix is prov then the value must be a qualified name object
                 let attrValuePrefix = $(".input-attr-value-prefix").val();
                 let attrValURI = doc.scope.namespaces[attrValuePrefix].namespaceURI;
                 qnValue = new QualifiedName(attrValuePrefix, attrValue, attrValURI);

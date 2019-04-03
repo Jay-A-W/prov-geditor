@@ -18,17 +18,6 @@ Vue.component('load-modal', {
         </div>
     `
     ,
-    props: {
-
-    },
-    data: function () {
-        return {
-            activeTool: String,
-        }
-    },
-    computed: {
-
-    },
     methods: {
         loadData() {
             try{
@@ -57,7 +46,5 @@ Vue.component('load-modal', {
             $(".load-input-content").show();
             $("#load-modal").hide();
         }
-    },
-    mounted() {
     }
 })

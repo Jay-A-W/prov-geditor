@@ -27,20 +27,14 @@
        </div>
     `
     ,
-    props:{
-       
-    },
     data: function(){
         return {
             prefixes: store.state.prefixSet,
             currentElement: store.state.currentElement
         }
     },
-    computed: {
-        
-    },
     methods: {
-        checkIfActivity() {
+        checkIfActivity() { //Check if element is activity as start time and end time is relevant to activity only
             if (store.state.currentElement != "undefined") {
                 if (store.state.currentElement.model.attributes.type == "custom.Activity") {
                     return true;
@@ -96,16 +90,5 @@
             localStorage.setItem('doc', JSON.stringify(doc));
             localStoreSaveStatements();
         }
-    },
-    created() {
     }
 })
-//<!--<transition v-on:enter="this.addDateTimePicker">-->
-//                  <div v-if="this.checkIfActivity()" class="date-time-div">
-//                       <div> Choose Activity Date (Optional)</div>
-//                       </br>
-//                       <button class="show-date-time-picker" @click="showDateTimePicker()">Show</button>
-//                       <div class="date-time-picker">Start Date: <input class="start-time" type="datetime-local" name="Date Time Picker"></div>
-//                       <div class="date-time-picker">End Date: <input class="end-time" type="datetime-local" name="Date Time Picker"></div>
-//                  </div>
-//              <!--</transition>-->

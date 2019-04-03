@@ -22,17 +22,6 @@
        </div>
     `
     ,
-    props: {
-
-    },
-    data: function () {
-        return {
-
-        }
-    },
-    computed: {
-
-    },
     methods: {
         submit() {
             if ($(".export-options").val() == "application/json") {
@@ -51,7 +40,7 @@
             $(".export-input-content").show();
             $("#export-modal").hide();
         },
-        ajaxRequest(acceptType) {
+        ajaxRequest(acceptType) { //jquery ajax call to Open Provenance endpoint for data conversion to different format
             let jsonProv = getProvAsJSON(doc);
             $.ajax({
                 url: 'https://openprovenance.org/services/provapi/documents2',
@@ -66,7 +55,7 @@
                     $("#exported-data-modal").show();
                     if ((acceptType == "application/provenance+xml") || (acceptType == "application/rdf+xml")){
                         $(".export-data-area").val(new XMLSerializer().serializeToString(result));
-                    } else if (acceptType == "application/json") {
+                    } else if (acceptType == "application/json") { //json conversion not required as that data format can be retrieved without the API
                         $(".export-data-area").val(JSON.stringify(result));
                     }
                     else {

@@ -13,19 +13,8 @@ Vue.component('exported-data-modal', {
         </div>
     `
     ,
-    props: {
-
-    },
-    data: function () {
-        return {
-            activeTool: String,
-        }
-    },
-    computed: {
-
-    },
     methods: {
-        copyData() {
+        copyData() { //Copy to clipboard
             var copyDOM = $(".export-data-area");
             copyDOM.select();
             document.execCommand("copy");
@@ -33,7 +22,5 @@ Vue.component('exported-data-modal', {
         closeModal() {
             $("#exported-data-modal").hide();
         },
-    },
-    mounted() {
     }
 })

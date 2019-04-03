@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/jointjs/2.1.0/joint.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="css/joint.min.css">
     <link rel="stylesheet" type="text/css" href="css/editor.css">
     <link rel="stylesheet" type="text/css" href="lib/jquery-ui-1.12.1/jquery-ui.css">
     <link rel="stylesheet" type="text/css" href="css/jquery-ui-timepicker-addon.css">
@@ -52,11 +52,12 @@
     <script src="lib/jquery-ui-timepicker-addon.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/3.10.1/lodash.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/backbone.js/1.3.3/backbone.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jointjs/2.1.0/joint.js"></script>
+    <script src="lib/joint.min.js"></script>
     <script src="lib/customShapes/joint.shapes.custom.js"></script>
     <script type="text/javascript" src="lib/prov.js"></script>
     <script type="text/javascript" src="lib/api.js"></script>
     <script src="js/provFunc.js"></script>
+    <script src="js/globalisedProvFunc.js"></script>
     <script src="js/utlityFunctions.js"></script>
     <!-- Vue Declaration -->
     <script src="vue/sidebar.js"></script>
@@ -81,7 +82,7 @@
         store.commit("addPrefixToSet", 'ex');
 
         let json = {};
-        let graph = new joint.dia.Graph;
+        let graph = new joint.dia.Graph; //Instantiating graph and paper
         var paper = new joint.dia.Paper({
             el: document.getElementById('canvas'),
             model: graph,
@@ -92,7 +93,7 @@
             linkPinning: false,
             defaultLink: new joint.shapes.custom.fsa.Arrow({
             }),
-            elementView: joint.dia.ElementView.extend({
+            elementView: joint.dia.ElementView.extend({ //Listeners for element events
                 pointerdblclick: function (evt, x, y) {
                     store.commit("setCurrentElement", this);
                     $("#elementModal").show();
@@ -106,7 +107,7 @@
                     }
                 },
             }),
-            linkView: joint.dia.LinkView.extend({
+            linkView: joint.dia.LinkView.extend({ //Listener for link events
                 pointerdblclick: function (evt, x, y) {
                     if (this.model.attributes.labels[0].attrs.text.text == "wasGeneratedBy") {
                         store.commit("setCurrentLink", this);
@@ -124,29 +125,103 @@
             }),
         });
 
-        //paper.on('cell:pointerup', function (cellView, evt) { \\For firefox as event behaves differently in firefox, however not working as it doesn't update simultaneous to the linking event
-        //    xCoordinate = evt.clientX;
-        //    yCoordinate = evt.clientY;
-        //    console.log(xCoordinate);
-        //})
-
+        //Following set of statements retrieves localStorage data
         if (localStorage.getItem('graph')) { //HAS TO BE DONE AFTER INSTANTIATION OF PAPER AS PAPER IS WHAT REACTS TO UPDATE GRAPH VISUALLY
             graph.fromJSON(JSON.parse(localStorage.getItem('graph')));
         }
         if (localStorage.getItem('prefixSet')) {
             store.commit("setPrefixSetTo", localStorage.getItem('prefixSet'));
-            console.log(store.state.prefixSet);
         }
         if (localStorage.getItem('doc')) {
             doc.scope.namespaces = JSON.parse(localStorage.getItem('doc')).scope.namespaces;
         }
-
         if (localStorage.getItem("statements")) {
             loadStatements(JSON.parse(localStorage.getItem("statements")));
-
         }
 
-        const menu = document.querySelector(".menu");
+        //Listens to connection of links
+        graph.on('change:source change:target', function (link) {
+            let source = link.get('source');
+            let target = link.get('target');
+            if (source.id && target.id) {
+                // both ends of the link are connected.
+                let origin = {};
+                if (typeof event == "undefined") { //For firefox as event is undefined for firefox, cannot use a listener as it inteferes with graph events.
+                    origin = {
+                        left: 0, //Currently left at 0 to prevent error in Firefox
+                        top: 0
+                    };
+                } else {
+                    origin = {
+                        left: event.clientX,
+                        top: event.clientY
+                    };
+                }
+
+                setPosition(origin); //Sets position of relation context menu
+                let sourceElement = getElementById(source.id);
+                let targetElement = getElementById(target.id);
+
+                hideContextOptions(sourceElement, targetElement); //Removes relations irrelevant to given element pair
+                store.commit("setCurrentSource", getElementById(source.id));
+                store.commit("setCurrentTarget", getElementById(target.id));
+                store.commit("setCurrentLink", link);
+                return false;
+            }
+        })
+        //Listens to link deletion
+        paper.on('tool:remove', function (link, linkView, evt) {
+            if (link.model.attributes.attrs.hasOwnProperty("relType")) { //To check if a link actually has a relation so that an error doesn't occur
+                deleteRelationInDoc(link.model);
+            }
+            link.model.remove();
+            localStorage.setItem('graph', JSON.stringify(graph));
+            localStorage.setItem('doc', JSON.stringify(doc));
+            localStoreSaveStatements();
+        })
+        //Listens to deletion of elements
+        paper.on('delete:button:pointerdown', function (elementView, evt) {
+            evt.stopPropagation(); // stop any further actions with the element view (e.g. dragging)
+            let model = elementView.model;
+            let type = model.attributes.type.replace("custom.", "");
+            let currentName = model.attributes.attrs.label.text;
+            let connectedLinks = graph.getConnectedLinks(model);
+            for (let link of connectedLinks) {
+                link.remove();
+                deleteRelationInDoc(link);
+            }
+            let filtered = doc.scope.statements.filter(function (element) { //Filters out element being deleted
+                if ((element.constructor.name == type) && (element.identifier.localPart == currentName)) {
+                    return false;
+                } else {
+                    return true;
+                }
+            });
+            doc.scope.statements = filtered;
+            model.remove();
+            localStorage.setItem('graph', JSON.stringify(graph));
+            localStorage.setItem('doc', JSON.stringify(doc));
+            localStoreSaveStatements();
+        });
+
+        window.onload = function () {
+            document.getElementById("canvas").addEventListener("click", function (event) { //Canvas click listener
+                if (menuVisible) toggleMenu("hide"); //For context menu
+                let activeTool = store.state.activeTool;
+                let pointX = event.clientX - 50;
+                let pointY = event.clientY - 20;
+                if ((activeTool == "entity") || (activeTool == "activity") || (activeTool == "agent")) {
+                    createElementNoPROV(activeTool, pointX, pointY); //Create element with no PROV information
+                    store.commit('setActiveTool', 'none');
+                }
+                for (let child of $(".menu-options").children()) { //Hides relation context menu when canvas is clicked
+                    child.style.display = "none";
+                };
+                event.stopPropagation();
+            });
+        }
+
+        const menu = document.querySelector(".menu"); //Context menu code partially from "How to create a context menu in JavaScript" guide
         let menuVisible = false;
 
         const toggleMenu = command => {
@@ -160,9 +235,8 @@
             toggleMenu('show');
         };
 
-        function addRelation(label) {
+        function addRelation(label) { //Adds relation data to PROV document
             store.commit("setCurrentLinkLabel", label);
-            console.log(store.state.currentSource);
             doc[label](store.state.currentSource.attributes.attrs.prefix.text + ":" + store.state.currentSource.attributes.attrs.label.text, store.state.currentTarget.attributes.attrs.prefix.text + ":" + store.state.currentTarget.attributes.attrs.label.text);
             localStorage.setItem('graph', JSON.stringify(graph));
             localStorage.setItem('doc', JSON.stringify(doc));
@@ -173,7 +247,7 @@
             toggleMenu('hide');
         };
 
-        function hideContextOptions(source, target) {
+        function hideContextOptions(source, target) { //Hides the relations that aren't relevant to the pair of elements, in the context menu
             let menuOptions = document.querySelector(".menu-options");
 
             let sourceType = source.attributes.type;
@@ -233,40 +307,9 @@
             }
         };
 
-        //On connection
-        graph.on('change:source change:target', function (link) {
-            let source = link.get('source');
-            let target = link.get('target');
-            if (source.id && target.id) {
-                // both ends of the link are connected.
-                let origin = {};
-                if (typeof event == "undefined") { //For firefox as event is undefined for firefox, cannot use a listener as it inteferes with graph events.
-                    origin = {
-                        left: 0, //Currently left at 0 to prevent error in Firefox
-                        top: 0
-                    };
-                } else {
-                    origin = {
-                        left: event.clientX,
-                        top: event.clientY
-                    };
-                }
-
-                setPosition(origin);
-                let sourceElement = getElementById(source.id);
-                let targetElement = getElementById(target.id);
-
-                hideContextOptions(sourceElement, targetElement);
-                store.commit("setCurrentSource", getElementById(source.id));
-                store.commit("setCurrentTarget", getElementById(target.id));
-                store.commit("setCurrentLink", link);
-                return false;
-            }
-        })
-
-        function deleteRelationInDoc(link) {
+        function deleteRelationInDoc(link) { //Deletes relation in PROV document data
             let relType = link.attributes.attrs.relType;
-            if (relType.constructor.name == "Object") {
+            if (relType.constructor.name == "Object") { //A fix for a bug where link.attributes.attrs.relType appears as an array of characters due to localStorage
                 relType = link.attributes.labels[0].attrs.text.text;
             }
             let qualifiedInfluence;
@@ -276,7 +319,7 @@
             let sourceType = source.attributes.type.replace("custom.", "");
             let targetType = target.attributes.type.replace("custom.", "");
 
-            switch (relType) {
+            switch (relType) { //Depending on the relation type the qualifiedInfluence and name of source and target element differ
                 case "wasGeneratedBy":
                     qualifiedInfluence = "Generation";
                     filtered = filterOutLink(link, qualifiedInfluence);
@@ -405,51 +448,13 @@
             localStoreSaveStatements();
         };
 
-        paper.on('tool:remove', function (link, linkView, evt) {
-            if (link.model.attributes.attrs.hasOwnProperty("relType")) { //To check if a link actually has a relation so that an error doesn't occur
-                deleteRelationInDoc(link.model);
-            }
-            link.model.remove();
-            localStorage.setItem('graph', JSON.stringify(graph));
-            localStorage.setItem('doc', JSON.stringify(doc));
-            localStoreSaveStatements();
-        })
-
-        paper.on('delete:button:pointerdown', function (elementView, evt) {
-            evt.stopPropagation(); // stop any further actions with the element view (e.g. dragging)
-            let model = elementView.model;
-            let type = model.attributes.type.replace("custom.", "");
-            let currentName = model.attributes.attrs.label.text;
-            //let provElement = doc.scope.statements.filter(elementType => elementType.constructor.name == type).filter(element => element.identifier.localPart == currentName);
-            let connectedLinks = graph.getConnectedLinks(model);
-            for (let link of connectedLinks) {
-                link.remove();
-                deleteRelationInDoc(link);
-            }
-            let filtered = doc.scope.statements.filter(function (element) {
-                if ((element.constructor.name == type) && (element.identifier.localPart == currentName)) {
-                    return false;
-                } else {
-                    return true;
-                }
-            });
-            doc.scope.statements = filtered;
-            model.remove();
-            localStorage.setItem('graph', JSON.stringify(graph));
-            localStorage.setItem('doc', JSON.stringify(doc));
-            localStoreSaveStatements();
-        });
-
         function link(source, target, label, vertices) { //Used for manual addition of links in code, for testing purposes
-            //doc.used("ex:" + source.id, "ex:" + target.id);
-            //doc['used']("ex:" + source.id, "ex:" + target.id);
             let labelFunc = doc[label];
 
-            //console.log(typeof labelFunc !== 'function');
             if (typeof labelFunc !== 'function') {
                 throw new Error('invalid label type ' + label);
             } else {
-                var cell = new joint.shapes.fsa.Arrow({
+                var cell = new joint.shapes.fsa.Arrow({ //new link
                     source: { id: source.id },
                     target: { id: target.id },
                     labels: [{ position: .5, attrs: { text: { text: label || '', 'font-weight': 'bold' } } }],
@@ -458,12 +463,12 @@
                 graph.addCell(cell);
                 store.commit("setCurrentLink", cell);
                 store.commit("setCurrentLinkLabel", label);
-                doc[label]("ex:" + source.attributes.attrs.label.text, "ex:" + target.attributes.attrs.label.text);
+                doc[label]("ex:" + source.attributes.attrs.label.text, "ex:" + target.attributes.attrs.label.text); //adds link to PROV document data
                 return cell;
             }
         }
 
-        function createElementNoPROV(type, x, y) {
+        function createElementNoPROV(type, x, y) { //Creates a joint.js shape without generating any PROV data
             let item;
             switch (type) {
                 case 'entity':
@@ -496,22 +501,6 @@
             return item;
         }
 
-        window.onload = function () {
-            document.getElementById("canvas").addEventListener("click", function (event) {
-                if (menuVisible) toggleMenu("hide"); //For context menu
-                let activeTool = store.state.activeTool;
-                let pointX = event.clientX - 50;
-                let pointY = event.clientY - 20;
-                if ((activeTool == "entity") || (activeTool == "activity") || (activeTool == "agent")) {
-                    createElementNoPROV(activeTool, pointX, pointY); //Create element with no PROV information
-                    store.commit('setActiveTool', 'none');
-                }
-                for (let child of $(".menu-options").children()) {
-                    child.style.display = "none";
-                };
-                event.stopPropagation();
-            });
-        }
         localStorage.setItem('graph', JSON.stringify(graph));
         localStorage.setItem('doc', JSON.stringify(doc));
         localStoreSaveStatements();
